@@ -12,6 +12,7 @@ export const VALID_CONNECTIONS: Record<NodeType, NodeType[]> = {
 };
 
 export interface GraphEdgeData {
+  [key: string]: unknown;
   label: string;
   order: number;
 }

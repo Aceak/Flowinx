@@ -12,6 +12,7 @@ export const NODE_TYPES = [
 export type NodeType = (typeof NODE_TYPES)[number];
 
 export interface ServerData {
+  [key: string]: unknown;
   label: string;
   /** 监听地址，空表示所有网卡 */
   listenAddr: string;
@@ -28,6 +29,7 @@ export interface ServerData {
 }
 
 export interface LocationData {
+  [key: string]: unknown;
   label: string;
   path: string;
   /** 'proxy' | 'static' | 'block' */
@@ -53,6 +55,7 @@ export interface LocationData {
 }
 
 export interface UpstreamData {
+  [key: string]: unknown;
   label: string;
   name: string;
   strategy: 'round-robin' | 'least-conn' | 'ip-hash';
@@ -60,6 +63,7 @@ export interface UpstreamData {
 }
 
 export interface BackendData {
+  [key: string]: unknown;
   label: string;
   address: string;
   weight: number;
@@ -69,6 +73,7 @@ export interface BackendData {
 }
 
 export interface RedirectData {
+  [key: string]: unknown;
   label: string;
   /** 来源域名（通常是 HTTP 的域名，跳转到 HTTPS） */
   fromDomain: string;
@@ -79,6 +84,7 @@ export interface RedirectData {
 }
 
 export interface StaticData {
+  [key: string]: unknown;
   label: string;
   /** 匹配路径 */
   path: string;

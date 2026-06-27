@@ -4,13 +4,10 @@ import {
   applyEdgeChanges,
   type Node,
   type Edge,
-  type OnNodesChange,
-  type OnEdgesChange,
-  type OnConnect,
 } from '@xyflow/react';
 import type { NodeData, NodeType } from '../types/nodes';
 import type { GraphEdgeData } from '../types/edges';
-import type { AppState, ConfigError } from '../types/store';
+import type { AppState } from '../types/store';
 import { NODE_DEFAULTS } from '../constants/nodeDefaults';
 import { generateId, generateEdgeId } from '../utils/idGenerator';
 import { generateConfig as generateNginxConfig } from '../engine/configGenerator';
@@ -21,11 +18,11 @@ export const useStore = create<AppState>((set, get) => ({
   edges: [],
 
   onNodesChange: (changes) => {
-    set({ nodes: applyNodeChanges(changes, get().nodes) as Node<NodeData>[] });
+    set({ nodes: applyNodeChanges(changes, get().nodes as Node[]) as Node<NodeData>[] });
   },
 
   onEdgesChange: (changes) => {
-    set({ edges: applyEdgeChanges(changes, get().edges) as Edge<GraphEdgeData>[] });
+    set({ edges: applyEdgeChanges(changes, get().edges as Edge[]) as Edge<GraphEdgeData>[] });
   },
 
   onConnect: (connection) => {

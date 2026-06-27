@@ -158,6 +158,12 @@ export function generateConfig(
         lines.push('            proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;');
         lines.push('            proxy_set_header X-Forwarded-Proto $scheme;');
         lines.push('        }');
+      } else {
+        errors.push({
+          nodeId: server.id,
+          severity: 'warning',
+          message: '多个后端直连无法同时生效，请添加「后端组」节点实现负载均衡',
+        });
       }
     }
 
