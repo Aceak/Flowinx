@@ -1,0 +1,35 @@
+@import "tailwindcss";
+
+@layer base {
+  * {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+  }
+
+  html, body, #root {
+    height: 100%;
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  }
+}
+
+/* React Flow overrides */
+.react-flow__node {
+  cursor: pointer;
+}
+
+.react-flow__attribution {
+  display: none !important;
+}
+
+/* CodeMirror 配置代码使用 Consolas */
+.cm-editor .cm-content {
+  font-family: 'Consolas', 'JetBrains Mono', 'Fira Code', 'Source Code Pro', Menlo, Monaco, 'Courier New', 'Microsoft YaHei', '微软雅黑', monospace !important;
+}
+
+/* 行号等宽 */
+.cm-editor .cm-lineNumbers,
+.cm-editor .cm-gutterElement {
+  font-family: 'Consolas', 'JetBrains Mono', 'Fira Code', 'Source Code Pro', Menlo, Monaco, 'Courier New', monospace !important;
+  font-size: 12px !important;
+}
