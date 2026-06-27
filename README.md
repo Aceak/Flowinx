@@ -10,7 +10,7 @@
 
 <br />
 <p>
-  <a href="https://aceak.github.io/flowinx/"><strong>🌐 在线使用</strong></a>
+  <a href="https://wiki.stxwer.top/flowinx/"><strong>🌐 在线使用</strong></a>
   &nbsp;·&nbsp;
   <a href="#简介"><strong>简介</strong></a>
   &nbsp;·&nbsp;
