@@ -12,7 +12,7 @@ const nodeTypes = {
   backend: CustomNode, redirect: CustomNode, static: CustomNode,
 };
 
-const NODE_W = 180, NODE_H = 84, SNAP = 10;
+const NODE_W = 180, NODE_H = 84;
 
 function snap(n: number, g: number): number { return Math.round(n / g) * g; }
 
@@ -41,27 +41,34 @@ export function FlowCanvas() {
 
   const onPaneClick = useCallback(() => setSelectedNode(null), [setSelectedNode]);
 
-  // 拖拽吸附：中心对齐其他节点 > 网格
-  const onNodeDrag = useCallback((_e: MouseEvent | TouchEvent, dragged: Node) => {
+  // 拖拽吸附：始终与最近的其他节点中心对齐，无距离限制
+  const snapPosition = useCallback((nodeId: string, pos: { x: number; y: number }) => {
     const all = useStore.getState().nodes;
-    let { x, y } = dragged.position;
-    const cx = x + NODE_W / 2, cy = y + NODE_H / 2;
-    let alignedX = false, alignedY = false;
+    const cx = pos.x + NODE_W / 2, cy = pos.y + NODE_H / 2;
+    let bestX = snap(pos.x, 20), bestY = snap(pos.y, 20);
+    let bestDistX = Infinity, bestDistY = Infinity;
 
     for (const o of all) {
-      if (o.id === dragged.id) continue;
+      if (o.id === nodeId) continue;
       const ocx = o.position.x + NODE_W / 2, ocy = o.position.y + NODE_H / 2;
-      if (Math.abs(cx - ocx) < SNAP) { x = ocx - NODE_W / 2; alignedX = true; }
-      if (Math.abs(cy - ocy) < SNAP) { y = ocy - NODE_H / 2; alignedY = true; }
+      const dx = Math.abs(cx - ocx), dy = Math.abs(cy - ocy);
+      if (dx < bestDistX) { bestDistX = dx; bestX = ocx - NODE_W / 2; }
+      if (dy < bestDistY) { bestDistY = dy; bestY = ocy - NODE_H / 2; }
     }
+    return { x: bestX, y: bestY };
+  }, []);
 
-    if (!alignedX) x = snap(x, 20);
-    if (!alignedY) y = snap(y, 20);
-
-    if (x !== dragged.position.x || y !== dragged.position.y) {
-      onNodesChange([{ type: 'position', id: dragged.id, position: { x, y }, dragging: true }]);
+  const onNodeDrag = useCallback((_e: MouseEvent | TouchEvent, dragged: Node) => {
+    const snapped = snapPosition(dragged.id, dragged.position);
+    if (snapped.x !== dragged.position.x || snapped.y !== dragged.position.y) {
+      onNodesChange([{ type: 'position', id: dragged.id, position: snapped, dragging: true }]);
     }
-  }, [onNodesChange]);
+  }, [onNodesChange, snapPosition]);
+
+  const onNodeDragStop = useCallback((_e: MouseEvent | TouchEvent, dragged: Node) => {
+    const snapped = snapPosition(dragged.id, dragged.position);
+    onNodesChange([{ type: 'position', id: dragged.id, position: snapped }]);
+  }, [onNodesChange, snapPosition]);
 
   const isValidConnection = useCallback((c: { source: string; target: string }) => {
     const src = nodes.find((n) => n.id === c.source);
@@ -75,7 +82,7 @@ export function FlowCanvas() {
       <ReactFlow
         nodes={nodes} edges={edges}
         onNodesChange={onNodesChange} onEdgesChange={onEdgesChange} onConnect={onConnect}
-        onNodeClick={onNodeClick} onPaneClick={onPaneClick} onNodeDrag={onNodeDrag}
+        onNodeClick={onNodeClick} onPaneClick={onPaneClick} onNodeDrag={onNodeDrag} onNodeDragStop={onNodeDragStop}
         isValidConnection={isValidConnection} nodeTypes={nodeTypes}
         fitView deleteKeyCode={['Backspace', 'Delete']}
         panOnDrag={panMode}
