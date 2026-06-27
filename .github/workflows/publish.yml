@@ -1,17 +1,19 @@
 name: Publish
 
 on:
-  workflow_run:
-    workflows:
-      - Validate
-    types:
-      - completed
+  push:
     branches:
       - main
-  workflow_dispatch:
+    paths-ignore:
+      - "*.md"
+      - "LICENSE"
+      - "docs/**"
+      - ".gitignore"
+      - ".github/ISSUE_TEMPLATE/**"
+      - ".github/PULL_REQUEST_TEMPLATE.md"
 
 concurrency:
-  group: publish-site
+  group: publish-${{ github.sha }}
   cancel-in-progress: true
 
 permissions:
@@ -19,19 +21,68 @@ permissions:
   actions: read
 
 jobs:
+  wait-validate:
+    name: Wait for Validate
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Wait for same commit Validate result
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+          SHA: ${{ github.sha }}
+        run: |
+          set -euo pipefail
+
+          echo "Waiting for Validate workflow on commit: $SHA"
+
+          for i in {1..60}; do
+            RUN_JSON="$(gh run list \
+              --repo "$REPO" \
+              --workflow ci.yml \
+              --commit "$SHA" \
+              --json databaseId,status,conclusion,headSha,event \
+              --limit 10)"
+
+            RUN_ID="$(echo "$RUN_JSON" | jq -r '.[0].databaseId // empty')"
+            STATUS="$(echo "$RUN_JSON" | jq -r '.[0].status // empty')"
+            CONCLUSION="$(echo "$RUN_JSON" | jq -r '.[0].conclusion // empty')"
+            EVENT="$(echo "$RUN_JSON" | jq -r '.[0].event // empty')"
+
+            if [ -z "$RUN_ID" ]; then
+              echo "Validate run not found yet. Retrying..."
+              sleep 10
+              continue
+            fi
+
+            echo "Validate run: $RUN_ID, event: $EVENT, status: $STATUS, conclusion: ${CONCLUSION:-none}"
+
+            if [ "$STATUS" = "completed" ]; then
+              if [ "$CONCLUSION" = "success" ]; then
+                echo "Validate passed."
+                exit 0
+              fi
+
+              echo "::error::Validate failed. Conclusion: $CONCLUSION"
+              exit 1
+            fi
+
+            sleep 10
+          done
+
+          echo "::error::Timed out waiting for Validate."
+          exit 1
+
   build:
     name: Build Site
     runs-on: ubuntu-latest
-
-    if: >
-      github.event_name == 'workflow_dispatch' ||
-      github.event.workflow_run.conclusion == 'success'
+    needs: wait-validate
 
     steps:
       - name: Checkout
         uses: actions/checkout@v6
         with:
-          ref: ${{ github.event.workflow_run.head_sha || github.sha }}
+          ref: ${{ github.sha }}
 
       - name: Setup Node.js
         uses: actions/setup-node@v6

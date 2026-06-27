@@ -9,18 +9,22 @@
 拖拽节点，连接服务，像画架构图一样生成 `nginx.conf`。
 
 <br />
+
 <p>
   <a href="https://wiki.stxwer.top/flowinx/"><strong>🌐 在线使用</strong></a>
   &nbsp;·&nbsp;
   <a href="#简介"><strong>简介</strong></a>
   &nbsp;·&nbsp;
   <a href="#快速开始"><strong>快速开始</strong></a>
+  &nbsp;·&nbsp;
+  <a href="#开发计划"><strong>开发计划</strong></a>
 </p>
 
 <p>
   <img src="https://img.shields.io/badge/React-19-61DAFB?logo=react&logoColor=white" alt="React" />
   <img src="https://img.shields.io/badge/TypeScript-Ready-3178C6?logo=typescript&logoColor=white" alt="TypeScript" />
   <img src="https://img.shields.io/badge/License-MIT-blue" alt="License" />
+  <img src="https://img.shields.io/badge/PRs-welcome-brightgreen" alt="PRs Welcome" />
 </p>
 
 <br />
@@ -41,13 +45,13 @@
 
 ## 功能特性
 
-| 能力   | 说明                         |
-| ---- | -------------------------- |
-| 站点配置 | 域名、端口、HTTPS、SSL            |
-| 路径规则 | 反向代理 / 静态文件 / 禁止访问         |
-| 后端服务 | upstream 负载均衡 + 多后端服务器     |
-| 访问控制 | IP 黑白名单                    |
-| 请求头  | X-Forwarded-For            |
+| 能力 | 说明 |
+| ---- | ---- |
+| 站点配置 | 域名、端口、HTTPS、SSL |
+| 路径规则 | 反向代理 / 静态文件 / 禁止访问 |
+| 后端服务 | upstream 负载均衡 + 多后端服务器 |
+| 访问控制 | IP 黑白名单 |
+| 请求头 | X-Forwarded-For |
 | 配置管理 | 预设模板、JSON 导入导出、一键下载 `.conf` |
 
 ---
@@ -63,14 +67,14 @@
 └─ 重定向
 ```
 
-| 节点    | 用途               |
-| ----- | ---------------- |
-| 网站    | 域名、端口、HTTPS     |
-| 路径规则  | location 路径匹配    |
-| 后端组   | upstream 负载均衡组   |
-| 后端服务器 | 具体后端地址           |
-| 重定向   | 跳转规则             |
-| 静态资源  | 本地静态文件目录         |
+| 节点 | 用途 |
+| ---- | ---- |
+| 网站 | 域名、端口、HTTPS |
+| 路径规则 | location 路径匹配 |
+| 后端组 | upstream 负载均衡组 |
+| 后端服务器 | 具体后端地址 |
+| 重定向 | 跳转规则 |
+| 静态资源 | 本地静态文件目录 |
 
 ---
 
@@ -132,14 +136,34 @@ server {
 
 ## 技术栈
 
-| 技术           | 用途   |
-| ------------- | ---- |
-| React 19      | 前端框架 |
-| TypeScript    | 类型安全 |
+| 技术 | 用途 |
+| ---- | ---- |
+| React 19 | 前端框架 |
+| TypeScript | 类型安全 |
 | @xyflow/react | 节点画布 |
-| Zustand       | 状态管理 |
-| Tailwind CSS  | 样式   |
-| CodeMirror    | 代码展示 |
+| Zustand | 状态管理 |
+| Tailwind CSS | 样式 |
+| CodeMirror | 代码展示 |
+
+---
+
+## 开发计划
+
+- [x] 拖拽式可视化画布
+- [x] 6 种 Nginx 节点类型
+- [x] 反向代理 / 静态文件 / 禁止访问
+- [x] HTTPS、SSL、XFF、IP 黑白名单
+- [x] 负载均衡与 upstream 配置
+- [x] 4 个预设模板
+- [x] JSON 导入 / 导出
+- [x] 语法高亮配置预览
+- [ ] 深色模式
+- [ ] AI 评估配置
+- [ ] AI 优化配置
+- [ ] 基于 nginx 配置生成架构图
+- [ ] 配置 Diff 对比
+- [ ] 更多 Nginx 节点类型
+- [ ] 多语言支持（i18n）
 
 ---
 
