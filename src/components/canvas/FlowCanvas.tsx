@@ -41,21 +41,23 @@ export function FlowCanvas() {
 
   const onPaneClick = useCallback(() => setSelectedNode(null), [setSelectedNode]);
 
-  // 拖拽吸附：始终与最近的其他节点中心对齐，无距离限制
+  // 拖拽吸附：中心点在横/竖线上靠近时对齐，否则网格吸附
+  const SNAP_DIST = 10;
   const snapPosition = useCallback((nodeId: string, pos: { x: number; y: number }) => {
     const all = useStore.getState().nodes;
     const cx = pos.x + NODE_W / 2, cy = pos.y + NODE_H / 2;
-    let bestX = snap(pos.x, 20), bestY = snap(pos.y, 20);
-    let bestDistX = Infinity, bestDistY = Infinity;
+    let x = pos.x, y = pos.y;
 
     for (const o of all) {
       if (o.id === nodeId) continue;
       const ocx = o.position.x + NODE_W / 2, ocy = o.position.y + NODE_H / 2;
-      const dx = Math.abs(cx - ocx), dy = Math.abs(cy - ocy);
-      if (dx < bestDistX) { bestDistX = dx; bestX = ocx - NODE_W / 2; }
-      if (dy < bestDistY) { bestDistY = dy; bestY = ocy - NODE_H / 2; }
+      if (Math.abs(cx - ocx) < SNAP_DIST) x = ocx - NODE_W / 2;
+      if (Math.abs(cy - ocy) < SNAP_DIST) y = ocy - NODE_H / 2;
     }
-    return { x: bestX, y: bestY };
+
+    if (x === pos.x) x = snap(pos.x, 20);
+    if (y === pos.y) y = snap(pos.y, 20);
+    return { x, y };
   }, []);
 
   const onNodeDrag = useCallback((_e: MouseEvent | TouchEvent, dragged: Node) => {
