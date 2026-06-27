@@ -1,34 +1,165 @@
-name: Publish to GitHub Pages
+name: Publish
 
 on:
-  push:
-    branches: [main]
+  workflow_run:
+    workflows:
+      - Validate
+    types:
+      - completed
+    branches:
+      - main
+  workflow_dispatch:
+
+concurrency:
+  group: publish-site
+  cancel-in-progress: true
 
 permissions:
   contents: read
-  pages: write
-  id-token: write
-
-concurrency:
-  group: pages
-  cancel-in-progress: true
+  actions: read
 
 jobs:
-  deploy:
+  build:
+    name: Build Site
     runs-on: ubuntu-latest
+
+    if: >
+      github.event_name == 'workflow_dispatch' ||
+      github.event.workflow_run.conclusion == 'success'
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+        with:
+          ref: ${{ github.event.workflow_run.head_sha || github.sha }}
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: 24
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build
+        run: npm run build
+
+      - name: Check dist
+        run: |
+          test -d dist && test -n "$(ls -A dist)" || {
+            echo "::error::dist directory is missing or empty."
+            exit 1
+          }
+
+      - name: Upload GitHub Pages artifact
+        uses: actions/upload-pages-artifact@v5
+        with:
+          path: dist
+
+      - name: Upload dist artifact
+        uses: actions/upload-artifact@v6
+        with:
+          name: dist
+          path: dist
+          retention-days: 1
+          if-no-files-found: error
+
+  deploy-pages:
+    name: Deploy to GitHub Pages
+    runs-on: ubuntu-latest
+    needs: build
+
+    permissions:
+      contents: read
+      pages: write
+      id-token: write
+      actions: read
+
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
+
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - name: Deploy GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v5
+
+  deploy-server:
+    name: Deploy to Remote Server
+    runs-on: ubuntu-latest
+    needs: build
+
+    env:
+      SSH_KEY: ${{ secrets.DEPLOY_SSH_KEY }}
+      SSH_HOST: ${{ secrets.DEPLOY_HOST }}
+      SSH_PORT: ${{ secrets.DEPLOY_PORT }}
+      SSH_USER: ${{ secrets.DEPLOY_USER }}
+      SSH_PATH: ${{ secrets.DEPLOY_PATH }}
+
+    steps:
+      - name: Download dist artifact
+        uses: actions/download-artifact@v7
         with:
-          node-version: 20
-      - run: npm ci
-      - run: npm run build
-      - uses: actions/configure-pages@v4
-      - uses: actions/upload-pages-artifact@v3
-        with:
+          name: dist
           path: dist
-      - id: deployment
-        uses: actions/deploy-pages@v4
+
+      - name: Normalize deploy env
+        run: |
+          set -euo pipefail
+
+          fail() {
+            echo "::error::$1"
+            exit 1
+          }
+
+          SSH_HOST="$(printf '%s' "${SSH_HOST:-}" | tr -d '\r\n ')"
+          SSH_PORT="$(printf '%s' "${SSH_PORT:-22}" | tr -d '\r\n ')"
+          SSH_USER="$(printf '%s' "${SSH_USER:-}" | tr -d '\r\n ')"
+          SSH_PATH="$(printf '%s' "${SSH_PATH:-}" | tr -d '\r\n')"
+
+          [ -n "${SSH_KEY:-}" ] || fail "DEPLOY_SSH_KEY is empty."
+          [ -n "$SSH_HOST" ] || fail "DEPLOY_HOST is empty."
+          [ -n "$SSH_PORT" ] || fail "DEPLOY_PORT is empty."
+          [ -n "$SSH_USER" ] || fail "DEPLOY_USER is empty."
+          [ -n "$SSH_PATH" ] || fail "DEPLOY_PATH is empty."
+          [ -d dist ] && [ -n "$(ls -A dist)" ] || fail "dist is missing or empty."
+
+          {
+            echo "SSH_HOST=$SSH_HOST"
+            echo "SSH_PORT=$SSH_PORT"
+            echo "SSH_USER=$SSH_USER"
+            echo "SSH_PATH=$SSH_PATH"
+          } >> "$GITHUB_ENV"
+
+      - name: Prepare SSH
+        run: |
+          set -euo pipefail
+
+          install -d -m 700 ~/.ssh
+          printf '%s\n' "$SSH_KEY" > ~/.ssh/deploy_key
+          chmod 600 ~/.ssh/deploy_key
+
+          ssh-keyscan -T 15 -p "$SSH_PORT" "$SSH_HOST" >> ~/.ssh/known_hosts 2>/dev/null || {
+            echo "::error::Cannot get SSH host key. Check DEPLOY_HOST and DEPLOY_PORT."
+            exit 1
+          }
+
+      - name: Rsync deploy
+        run: |
+          set -euo pipefail
+
+          SSH_OPTS="-p $SSH_PORT -i ~/.ssh/deploy_key -o BatchMode=yes -o ConnectTimeout=15"
+
+          rsync -rzlt --delete \
+            --no-owner \
+            --no-group \
+            --omit-dir-times \
+            --chmod=D2775,F664 \
+            -e "ssh $SSH_OPTS" \
+            dist/ "$SSH_USER@$SSH_HOST:$SSH_PATH/" || {
+              echo "::error::Rsync deploy failed. Check SSH login, remote path permissions, and delete permissions."
+              exit 1
+            }
+
+          echo "Deploy finished."
