@@ -1,5 +1,5 @@
 import { useCallback, useRef, useState } from 'react';
-import { ReactFlow, Background, Controls, MiniMap, BackgroundVariant, useReactFlow } from '@xyflow/react';
+import { ReactFlow, Background, Controls, MiniMap, BackgroundVariant, useReactFlow, type Node } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
 import { useStore } from '../../store/useStore';
 import { CustomNode } from './CustomNode';
@@ -12,12 +12,16 @@ const nodeTypes = {
   backend: CustomNode, redirect: CustomNode, static: CustomNode,
 };
 
+const NODE_W = 180, NODE_H = 84, SNAP = 10;
+
+function snap(n: number, g: number): number { return Math.round(n / g) * g; }
+
 export function FlowCanvas() {
   const reactFlowWrapper = useRef<HTMLDivElement>(null);
   const { screenToFlowPosition, zoomIn, zoomOut, fitView } = useReactFlow();
   const { nodes, edges, onNodesChange, onEdgesChange, onConnect, addNode, setSelectedNode } = useStore();
   const [gridLines, setGridLines] = useState(false);
-  const [panMode, setPanMode] = useState(true); // true=手形拖动画布, false=选框模式
+  const [panMode, setPanMode] = useState(true);
 
   const onDragOver = useCallback((e: React.DragEvent) => {
     e.preventDefault(); e.dataTransfer.dropEffect = 'move';
@@ -27,7 +31,6 @@ export function FlowCanvas() {
     e.preventDefault();
     const typeStr = e.dataTransfer.getData('application/reactflow-type');
     if (!typeStr) return;
-    // 节点中心对齐到鼠标位置
     const pos = screenToFlowPosition({ x: e.clientX, y: e.clientY });
     addNode(typeStr as NodeType, { x: pos.x - 90, y: pos.y - 42 });
   }, [addNode, screenToFlowPosition]);
@@ -37,6 +40,28 @@ export function FlowCanvas() {
   }, [setSelectedNode]);
 
   const onPaneClick = useCallback(() => setSelectedNode(null), [setSelectedNode]);
+
+  // 拖拽吸附：中心对齐其他节点 > 网格
+  const onNodeDrag = useCallback((_e: MouseEvent | TouchEvent, dragged: Node) => {
+    const all = useStore.getState().nodes;
+    let { x, y } = dragged.position;
+    const cx = x + NODE_W / 2, cy = y + NODE_H / 2;
+    let alignedX = false, alignedY = false;
+
+    for (const o of all) {
+      if (o.id === dragged.id) continue;
+      const ocx = o.position.x + NODE_W / 2, ocy = o.position.y + NODE_H / 2;
+      if (Math.abs(cx - ocx) < SNAP) { x = ocx - NODE_W / 2; alignedX = true; }
+      if (Math.abs(cy - ocy) < SNAP) { y = ocy - NODE_H / 2; alignedY = true; }
+    }
+
+    if (!alignedX) x = snap(x, 20);
+    if (!alignedY) y = snap(y, 20);
+
+    if (x !== dragged.position.x || y !== dragged.position.y) {
+      onNodesChange([{ type: 'position', id: dragged.id, position: { x, y }, dragging: true }]);
+    }
+  }, [onNodesChange]);
 
   const isValidConnection = useCallback((c: { source: string; target: string }) => {
     const src = nodes.find((n) => n.id === c.source);
@@ -50,10 +75,9 @@ export function FlowCanvas() {
       <ReactFlow
         nodes={nodes} edges={edges}
         onNodesChange={onNodesChange} onEdgesChange={onEdgesChange} onConnect={onConnect}
-        onNodeClick={onNodeClick} onPaneClick={onPaneClick}
+        onNodeClick={onNodeClick} onPaneClick={onPaneClick} onNodeDrag={onNodeDrag}
         isValidConnection={isValidConnection} nodeTypes={nodeTypes}
         fitView deleteKeyCode={['Backspace', 'Delete']}
-        snapToGrid snapGrid={[20, 20]}
         panOnDrag={panMode}
         selectionOnDrag={!panMode}
         panActivationKeyCode="Space"
@@ -76,36 +100,24 @@ export function FlowCanvas() {
         />
       </ReactFlow>
 
-      {/* 底部左侧自定义工具栏 */}
       <div className="absolute bottom-4 left-4 z-10 flex gap-1.5">
-        {/* 网格切换 */}
         <button onClick={() => setGridLines(!gridLines)}
           title={gridLines ? '切换为点阵' : '切换为网格线'}
           className="p-2 bg-white border border-gray-200 rounded-lg shadow-sm hover:bg-gray-50 text-gray-500 transition-colors">
           {gridLines ? <Grid3x3 size={16} /> : <Minus size={16} />}
         </button>
-
-        {/* 分隔 */}
         <div className="w-px bg-gray-200 my-1" />
-
-        {/* 选框模式 */}
         <button onClick={() => setPanMode(false)}
           title="框选多个节点"
           className={`p-2 border rounded-lg shadow-sm transition-colors ${!panMode ? 'bg-blue-50 border-blue-300 text-blue-600' : 'bg-white border-gray-200 hover:bg-gray-50 text-gray-500'}`}>
           <MousePointer2 size={16} />
         </button>
-
-        {/* 手形拖动画布 */}
         <button onClick={() => setPanMode(true)}
           title="拖动画布"
           className={`p-2 border rounded-lg shadow-sm transition-colors ${panMode ? 'bg-blue-50 border-blue-300 text-blue-600' : 'bg-white border-gray-200 hover:bg-gray-50 text-gray-500'}`}>
           <Hand size={16} />
         </button>
-
-        {/* 分隔 */}
         <div className="w-px bg-gray-200 my-1" />
-
-        {/* 缩放 */}
         <button onClick={() => zoomIn()} title="放大"
           className="p-2 bg-white border border-gray-200 rounded-lg shadow-sm hover:bg-gray-50 text-gray-500 transition-colors">
           <ZoomIn size={16} />
