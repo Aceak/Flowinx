@@ -68,7 +68,8 @@ export function generateConfig(
       lines.push('    server {');
       lines.push('        listen 80;');
       lines.push(`        server_name ${r.fromDomain};`);
-      lines.push(`        return ${r.permanent ? 301 : 302} ${r.toUrl}$request_uri;`);
+      const suffix = r.toUrl.endsWith('/') || r.toUrl.includes('?') ? '' : '$request_uri';
+      lines.push(`        return ${r.permanent ? 301 : 302} ${r.toUrl}${suffix};`);
       lines.push('    }');
       lines.push('');
     }
@@ -96,11 +97,8 @@ export function generateConfig(
       const mode = l.mode || 'static';
 
       lines.push('');
-      if (l.path.startsWith('~')) {
-        lines.push(`        location ${l.path} {`);
-      } else {
-        lines.push(`        location ${l.path} {`);
-      }
+      const locPath = l.path || '/';
+      lines.push(`        location ${locPath} {`);
 
       if (mode === 'block') {
         lines.push(`            return ${l.blockStatus || 403};`);
@@ -129,7 +127,8 @@ export function generateConfig(
       for (const ip of (l.deny || '').split('\n').filter(Boolean)) lines.push(`            deny ${ip.trim()};`);
       for (const line of (l.extra || '').split('\n').filter(Boolean)) {
         const t = line.trim();
-        if (t) lines.push(`            ${t.endsWith(';') ? t : t + ';'}`);
+        if (!t || t.startsWith('#')) continue;
+        lines.push(`            ${t.endsWith(';') || t.endsWith('}') ? t : t + ';'}`);
       }
       lines.push('        }');
     }
@@ -146,17 +145,18 @@ export function generateConfig(
       lines.push('        }');
     }
 
-    // direct backends
+    // direct backends — only generate one location /, use upstream if multiple
     const directBEs = children.filter((n) => n.type === 'backend') as Node<BackendData>[];
     if (directBEs.length > 0 && locations.length === 0) {
-      for (const be of directBEs) {
-        const b = be.data as BackendData;
+      if (directBEs.length === 1) {
+        const b = directBEs[0].data as BackendData;
         lines.push('');
         lines.push('        location / {');
         lines.push(`            proxy_pass http://${b.address};`);
         lines.push('            proxy_set_header Host $host;');
         lines.push('            proxy_set_header X-Real-IP $remote_addr;');
         lines.push('            proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;');
+        lines.push('            proxy_set_header X-Forwarded-Proto $scheme;');
         lines.push('        }');
       }
     }

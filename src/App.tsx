@@ -56,8 +56,8 @@ function App() {
           <div className="w-px h-full bg-gray-300 group-hover:bg-blue-400 transition-colors" />
         </div>
 
-        {/* 右侧面板，宽度可调 */}
-        <div style={{ width: panelWidth }} className="shrink-0 overflow-hidden">
+        {/* 右侧面板，宽度可调，限制最大不超过视口 60% */}
+        <div style={{ width: Math.min(panelWidth, window.innerWidth * 0.65) }} className="shrink-0 overflow-hidden">
           <RightPanel />
         </div>
       </div>

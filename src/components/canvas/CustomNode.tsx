@@ -65,7 +65,7 @@ export const CustomNode = memo(function CustomNode({ id, type, data, selected }:
             <p className="text-sm font-medium text-gray-800 truncate">{(data as UpstreamData).name}</p>
             <p className="text-xs text-gray-500 truncate">
               {{ 'round-robin': '轮询', 'least-conn': '最少连接', 'ip-hash': 'IP哈希' }[(data as UpstreamData).strategy] || (data as UpstreamData).strategy}
-              {(data as UpstreamData).keepalive ? ` · ${(data as UpstreamData).keepalive}连接` : ''}
+              {typeof (data as UpstreamData).keepalive === 'number' ? ` · ${(data as UpstreamData).keepalive}连接` : ''}
             </p>
           </>
         ) : nodeType === 'backend' ? (

@@ -10,7 +10,7 @@ interface DraggableItemProps {
 }
 
 export function DraggableItem({ type }: DraggableItemProps) {
-  const colors = NODE_COLORS[type] ?? NODE_COLORS['nginx-server'];
+  const colors = NODE_COLORS[type] ?? NODE_COLORS['server'];
   const label = NODE_LABELS[type] || type;
 
   const onDragStart = (event: React.DragEvent) => {

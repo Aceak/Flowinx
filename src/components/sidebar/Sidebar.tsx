@@ -50,7 +50,7 @@ export function Sidebar() {
         try {
           const d = JSON.parse(r.result as string);
           if (d.nodes && d.edges) {
-            if (nodes.length > 0 && !confirm('导入会替换当前内容，继续？')) return;
+            if (useStore.getState().nodes.length > 0 && !confirm('导入会替换当前内容，继续？')) return;
             loadGraph(d.nodes, d.edges);
           }
         } catch { alert('无效的 JSON 文件'); }
@@ -64,7 +64,7 @@ export function Sidebar() {
     <aside className="w-64 bg-gray-50 border-r border-gray-200 flex flex-col h-full overflow-hidden">
       <div className="p-4 border-b border-gray-200">
         <h1 className="text-lg font-bold text-gray-800 flex items-center gap-2">
-          <img src="/Flowinx.png" alt="Flowinx" className="w-7 h-7" />
+          <img src="Flowinx.png" alt="Flowinx" className="w-7 h-7" />
           Flowinx
         </h1>
       </div>

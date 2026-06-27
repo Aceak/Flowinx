@@ -56,7 +56,7 @@ export function BackendServerForm({ data, onChange }: Props) {
             <label className="flex flex-col gap-1">
               <span className="text-gray-500 text-xs">权重（数字越大请求越多）</span>
               <input type="number" value={data.weight} min={1} className="border rounded px-2.5 py-2 text-sm"
-                onChange={(e) => onChange({ weight: Number(e.target.value) })} />
+                onChange={(e) => onChange({ weight: e.target.value === '' ? 1 : Number(e.target.value) || 1 })} />
             </label>
             <label className="flex flex-col gap-1">
               <span className="text-gray-500 text-xs">最大失败次数</span>

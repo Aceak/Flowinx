@@ -33,9 +33,15 @@ export const useStore = create<AppState>((set, get) => ({
     const sourceNode = nodes.find((n) => n.id === connection.source);
     const targetNode = nodes.find((n) => n.id === connection.target);
     if (!sourceNode || !targetNode) return;
+    if (connection.source === connection.target) return;
 
     const validTargets = VALID_CONNECTIONS[sourceNode.type as NodeType] ?? [];
     if (!validTargets.includes(targetNode.type as NodeType)) return;
+
+    const exists = get().edges.some(
+      (e) => e.source === connection.source && e.target === connection.target
+    );
+    if (exists) return;
 
     const newEdge: Edge<GraphEdgeData> = {
       ...connection,
@@ -53,7 +59,7 @@ export const useStore = create<AppState>((set, get) => ({
     const defaults = NODE_DEFAULTS[type] ?? {};
     const newNode: Node<NodeData> = {
       id: generateId(),
-      type, // domain type: 'server' | 'location' | 'upstream' | 'backend'
+      type,
       position,
       data: { ...defaults } as NodeData,
     };
@@ -96,13 +102,18 @@ export const useStore = create<AppState>((set, get) => ({
 
   generateConfig: () => {
     const { nodes, edges } = get();
-    const result = generateNginxConfig(nodes, edges);
-    set({
-      generatedConfig: result.config,
-      configErrors: result.errors as ConfigError[],
-    });
+    try {
+      const result = generateNginxConfig(nodes, edges);
+      set({ generatedConfig: result.config, configErrors: result.errors });
+    } catch (err) {
+      set({
+        generatedConfig: null,
+        configErrors: [{
+          nodeId: 'store',
+          severity: 'error',
+          message: `配置生成失败: ${err instanceof Error ? err.message : String(err)}`,
+        }],
+      });
+    }
   },
-
-  activeTab: 'config',
-  setActiveTab: (tab) => set({ activeTab: tab }),
 }));

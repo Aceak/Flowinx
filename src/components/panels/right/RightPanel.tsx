@@ -1,7 +1,6 @@
 import { useState } from 'react';
 import { ConfigPanel } from './ConfigPanel';
 import { OutputPanel } from './output/OutputPanel';
-import { useStore } from '../../../store/useStore';
 import { Settings, FileText } from 'lucide-react';
 
 export function RightPanel() {

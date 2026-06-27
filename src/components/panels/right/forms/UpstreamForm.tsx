@@ -52,7 +52,7 @@ export function UpstreamForm({ data, onChange }: Props) {
       <label className="flex flex-col gap-1">
         <span className="text-gray-600 text-sm font-medium">保持连接数</span>
         <input type="number" value={data.keepalive} className="border rounded px-2.5 py-2 text-sm"
-          onChange={(e) => onChange({ keepalive: Number(e.target.value) })} />
+          onChange={(e) => onChange({ keepalive: e.target.value === '' ? 32 : Number(e.target.value) || 0 })} />
         <span className="text-xs text-gray-400">与后端保持的长连接数量，默认 32</span>
       </label>
     </div>

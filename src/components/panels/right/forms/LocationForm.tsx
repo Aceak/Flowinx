@@ -148,10 +148,7 @@ export function LocationForm({ data, onChange }: Props) {
           </label>
           <label className="flex items-center gap-2 text-sm cursor-pointer">
             <input type="checkbox" checked={data.useIndex}
-              onChange={(e) => {
-                onChange({ useIndex: e.target.checked });
-                if (!e.target.checked) onChange({ index: 'index.html index.htm' });
-              }} />
+              onChange={(e) => onChange({ useIndex: e.target.checked, index: e.target.checked ? data.index : 'index.html index.htm' })} />
             <span className="text-gray-700">自定义首页文件</span>
           </label>
           {data.useIndex && (
