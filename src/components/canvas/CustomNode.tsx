@@ -24,7 +24,7 @@ export const CustomNode = memo(function CustomNode({ id, type, data, selected }:
         <NodeIcon type={nodeType} size={13} />
         <span>{label}</span>
       </div>
-      <div className="px-2.5 pt-1 pb-2 leading-relaxed">
+      <div className="px-2.5 pt-1 pb-2 leading-relaxed flex flex-col justify-center" style={{ minHeight: 60 }}>
         {nodeType === 'server' ? (
           <>
             <p className="text-sm font-medium text-gray-800 truncate">{(data as ServerData).serverName}</p>
