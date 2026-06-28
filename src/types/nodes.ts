@@ -150,6 +150,7 @@ export interface CacheData {
   time: string;
   /** 最大缓存大小 */
   maxSize: string;
+  zoneSize: string;
   /** 缓存键 */
   keys: string;
   /** 允许返回过期缓存 */

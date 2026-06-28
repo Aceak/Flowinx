@@ -205,7 +205,7 @@ export function LocationForm({ data, onChange }: Props) {
                   placeholder="418"
                   className="border dark:border-neutral-600 dark:bg-neutral-900 dark:text-neutral-200 rounded px-1.5 py-1 text-sm w-full"
                   onChange={(e) => {
-                    const v = parseInt(e.target.value);
+                    const v = parseInt(e.target.value, 10);
                     if (v >= 100 && v <= 599) onChange({ blockStatus: v });
                     else if (e.target.value === '') onChange({ blockStatus: 403 });
                   }}

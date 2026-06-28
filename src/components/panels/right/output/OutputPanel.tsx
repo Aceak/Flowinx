@@ -17,31 +17,23 @@ export function OutputPanel() {
 
   const displayConfig = editedConfig ?? generatedConfig ?? '';
 
-  // 语法校验
+  // 语法校验：仅检查括号平衡
   const { syntaxErrors } = useMemo(() => {
-    const errMap = new Map<number, string>();
-    if (!displayConfig) return { errorLines: new Set<number>(), syntaxErrors: [] as string[] };
+    if (!displayConfig) return { syntaxErrors: [] as string[] };
     let depth = 0;
     const lines = displayConfig.split('\n');
-    const lastLine = lines.length;
     for (let i = 0; i < lines.length; i++) {
       const line = lines[i].trim();
       if (!line || line.startsWith('#')) continue;
       for (const ch of line) { if (ch === '{') depth++; if (ch === '}') depth--; }
-      if (!line.endsWith('{') && !line.endsWith('}') && !line.endsWith(';') && depth >= 0) {
-        errMap.set(i + 1, `缺少分号`);
-      }
     }
-    if (depth > 0) errMap.set(lastLine, `缺少 ${depth} 个闭合 }`);
-    if (depth < 0) errMap.set(lastLine, `多余 ${-depth} 个 }`);
-    const msgs = [...errMap.entries()].map(([ln, msg]) => `第 ${ln} 行: ${msg}`);
-    return { errorLines: new Set(errMap.keys()), syntaxErrors: msgs };
+    const msgs: string[] = [];
+    if (depth > 0) msgs.push(`缺少 ${depth} 个闭合 }`);
+    if (depth < 0) msgs.push(`多余 ${-depth} 个 }`);
+    return { syntaxErrors: msgs };
   }, [displayConfig]);
 
-  // 手动编辑时只显示语法错误，不显示画布生成错误
-  const allErrors = editedConfig
-    ? syntaxErrors
-    : [...configErrors.map((e) => e.message), ...syntaxErrors];
+  const allErrors = [...configErrors.map((e) => e.message), ...syntaxErrors];
 
   // 双向同步：配置无错误且用户编辑过 → 解析回画布
   useEffect(() => {
@@ -55,7 +47,10 @@ export function OutputPanel() {
         lastSynced.current = editedConfig;
         useStore.getState().loadGraph(nodes, edges);
         useStore.getState().generateConfig();
-      } catch { /* 解析失败 */ }
+      } catch (err) {
+        console.error('双向同步解析失败:', err);
+        lastSynced.current = editedConfig; // 防止无限重试
+      }
       setSyncing(false);
     }, 800);
     return () => clearTimeout(timer);
@@ -63,7 +58,7 @@ export function OutputPanel() {
 
   const handleCopy = useCallback(async () => {
     if (!displayConfig) return;
-    try { await navigator.clipboard.writeText(displayConfig); setCopied(true); setTimeout(() => setCopied(false), 2000); } catch { /* fallback */ }
+    try { await navigator.clipboard.writeText(displayConfig); setCopied(true); setTimeout(() => setCopied(false), 2000); } catch { const ta = document.createElement('textarea'); ta.value = displayConfig; document.body.appendChild(ta); ta.select(); document.execCommand('copy'); document.body.removeChild(ta); setCopied(true); setTimeout(() => setCopied(false), 2000); }
   }, [displayConfig]);
 
   return (

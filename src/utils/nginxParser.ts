@@ -39,13 +39,26 @@ export function configToGraph(config: string): { nodes: Node<NodeData>[]; edges:
       : b.directives['ip_hash'] ? 'ip-hash' : 'round-robin';
     rawNodes.push({
       id, type: 'upstream', position: { x: 0, y: 0 },
-      data: { label: NODE_LABELS['upstream'], name: b.args, strategy, keepalive: parseInt(b.directives['keepalive'] || '0') || 0 } as NodeData,
+      data: { label: NODE_LABELS['upstream'], name: b.args, strategy, keepalive: parseInt(b.directives['keepalive'] || '0', 10) || 0 } as NodeData,
     });
     for (const serverStr of (b.directives['_servers'] || '').split('\n').filter(Boolean)) {
       const beId = generateId();
+      const parts = serverStr.split(/\s+/);
+      const addr = parts[0];
+      const params: Record<string, string> = {};
+      for (const p of parts.slice(1)) {
+        const [k, v] = p.split('=');
+        if (k && v) params[k] = v;
+      }
       rawNodes.push({
         id: beId, type: 'backend', position: { x: 0, y: 0 },
-        data: { label: NODE_LABELS['backend'], address: serverStr } as NodeData,
+        data: {
+          label: NODE_LABELS['backend'], address: addr,
+          weight: parseInt(params['weight'] || '1', 10),
+          maxFails: parseInt(params['max_fails'] || '0', 10),
+          failTimeout: parseInt((params['fail_timeout'] || '30s').replace('s', ''), 10) || 30,
+          backup: !!params['backup'],
+        } as NodeData,
       });
       edges.push({ id: generateEdgeId(), source: id, target: beId, type: 'bezier', sourceHandle: 'bottom-source', targetHandle: 'top-target', data: { label: '', order: 0 } });
     }
@@ -58,7 +71,8 @@ export function configToGraph(config: string): { nodes: Node<NodeData>[]; edges:
     const serverName = b.directives['server_name'] || 'localhost';
     const listenVals = (b.directives['listen'] || '').split('\n').filter(Boolean);
     const firstListen = listenVals[0] || '80';
-    const port = parseInt(firstListen.replace(/[^\d]/g, '')) || 80;
+    const p = parseInt(firstListen.replace(/[^\d]/g, ''), 10);
+const port = isNaN(p) ? 80 : p;
     const ssl = !!b.directives['ssl_certificate'] || firstListen.includes('ssl');
     const ipv6Listen = listenVals.find((v: string) => v.includes('[')) || '';
     // 未映射到字段的指令存入 extra
@@ -97,10 +111,17 @@ export function configToGraph(config: string): { nodes: Node<NodeData>[]; edges:
       const hasReturn = !!loc.directives['return'];
       const hasProxy = !!loc.directives['proxy_pass'] || !!loc.directives['fastcgi_pass'];
       const returnVal = loc.directives['return'] || '';
-      const isRedirect = hasReturn && (returnVal.startsWith('301 ') || returnVal.startsWith('302 ') || returnVal.startsWith('http'));
+      const returnParts = returnVal.split(/\s+/);
+      const returnCode = parseInt(returnParts[0], 10);
+      const isRedirect = hasReturn && (
+        returnParts[0].startsWith('http') ||
+        [301, 302, 303, 307, 308].includes(returnCode)
+      );
       const mode = isRedirect ? 'redirect' : hasReturn ? 'block' : hasProxy ? 'proxy' : 'static';
-      const isRegex = loc.args.startsWith('~');
-      const locPath = isRegex ? loc.args : loc.args.split(' ')[0]; // "~ \.php$" or "/api"
+      // location 修饰符：= ^~ ~ ~* !~ !~*
+      const locArgs = loc.args;
+      const modifierMatch = locArgs.match(/^(=|~|\^~|~\*|!~|!~\*)\s+/);
+      const locPath = modifierMatch ? locArgs : locArgs;
       rawNodes.push({
         id: lId, type: 'location', position: { x: 0, y: 0 },
         data: {
@@ -108,10 +129,10 @@ export function configToGraph(config: string): { nodes: Node<NodeData>[]; edges:
           proxyPass: loc.directives['proxy_pass'] || '',
           fastcgiPass: loc.directives['fastcgi_pass'] || '',
           xff: !!loc.directives['proxy_set_header'],
-          blockStatus: parseInt((returnVal || '403').split(' ')[0]) || 403,
-          redirectUrl: isRedirect ? returnVal.replace(/^(301|302) /, '') : '',
-          redirectPermanent: isRedirect ? returnVal.startsWith('301') : true,
-          allow: '', deny: '', includes: loc.directives['include'] || '',
+          blockStatus: returnCode && !isRedirect ? returnCode : (parseInt((returnVal || '403').split(' ')[0], 10) || 403),
+          redirectUrl: isRedirect ? (returnParts[0].startsWith('http') ? returnVal : returnParts.slice(1).join(' ')) : '',
+          redirectPermanent: isRedirect ? [301, 308].includes(returnCode) || returnParts[0].startsWith('http') : true,
+          allow: loc.directives['allow'] || '', deny: loc.directives['deny'] || '', includes: loc.directives['include'] || '',
           fastcgiIndex: loc.directives['fastcgi_index'] || '',
           fastcgiParams: loc.directives['fastcgi_param'] || '', extra: '',
         } as NodeData,
@@ -145,8 +166,9 @@ export function configToGraph(config: string): { nodes: Node<NodeData>[]; edges:
           id: cacheId, type: 'cache', position: { x: 0, y: 0 },
           data: {
             label: NODE_LABELS['cache'], zone,
-            time: (loc.directives['proxy_cache_valid'] || '1h').replace(/^\d+\s+/, ''),
-            maxSize: '100m',
+            time: (loc.directives['proxy_cache_valid'] || '1h'),
+            maxSize: loc.directives['proxy_cache_path']?.match(/max_size=(\S+)/)?.[1] || '100m',
+            zoneSize: '10m',
             keys: loc.directives['proxy_cache_key'] || '$scheme$proxy_host$request_uri',
             useStale: !!loc.directives['proxy_cache_use_stale'],
           } as NodeData,

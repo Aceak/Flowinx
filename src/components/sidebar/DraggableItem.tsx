@@ -72,7 +72,7 @@ export function DraggableItem({ type }: DraggableItemProps) {
     if (overlaps(x, y)) {
       // 螺旋搜索，从近到远找空位
       const stepX = NODE_W + 30, stepY = NODE_H + 20;
-      outer: for (let r = 1; r < 8; r++) {
+      outer: for (let r = 1; r < 13; r++) {
         for (let d = -r; d <= r; d++) {
           if (!overlaps(x + d * stepX, y - r * stepY)) { x += d * stepX; y -= r * stepY; break outer; }
           if (!overlaps(x + d * stepX, y + r * stepY)) { x += d * stepX; y += r * stepY; break outer; }
@@ -96,7 +96,7 @@ export function DraggableItem({ type }: DraggableItemProps) {
       Math.abs(n.position.x - nx) < NODE_W + 20 && Math.abs(n.position.y - ny) < NODE_H + 20);
     if (overlaps(x, y)) {
       const stepX = NODE_W + 30, stepY = NODE_H + 20;
-      outer: for (let r = 1; r < 8; r++) {
+      outer: for (let r = 1; r < 13; r++) {
         for (let d = -r; d <= r; d++) {
           if (!overlaps(x + d * stepX, y - r * stepY)) { x += d * stepX; y -= r * stepY; break outer; }
           if (!overlaps(x + d * stepX, y + r * stepY)) { x += d * stepX; y += r * stepY; break outer; }

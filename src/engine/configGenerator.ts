@@ -54,7 +54,8 @@ export function generateConfig(
 
   // proxy_cache_path
   for (const [zone, c] of cacheZones) {
-    lines.push(INDENT(base) + `proxy_cache_path /var/cache/nginx/${zone} levels=1:2 keys_zone=${zone}:${c.maxSize} max_size=${c.maxSize} inactive=${c.time};`);
+    const keysZoneSize = c.zoneSize || '10m';
+    lines.push(INDENT(base) + `proxy_cache_path /var/cache/nginx/${zone} levels=1:2 keys_zone=${zone}:${keysZoneSize} max_size=${c.maxSize} inactive=${c.time};`);
   }
   if (cacheZones.size > 0) lines.push('');
 
@@ -79,9 +80,12 @@ export function generateConfig(
     lines.push('');
   }
 
-  // limit_req_zone（全局级别）
+  // limit_req_zone（全局去重）
+  const rateZones = new Set<string>();
   for (const rln of nodes.filter((n) => n.type === 'rate_limit')) {
     const rl = rln.data as { zone: string; zoneSize: string; rate: string };
+    if (rateZones.has(rl.zone)) continue;
+    rateZones.add(rl.zone);
     lines.push(INDENT(base) + `limit_req_zone $binary_remote_addr zone=${rl.zone}:${rl.zoneSize} rate=${rl.rate};`);
   }
 
@@ -163,7 +167,7 @@ export function generateConfig(
           lines.push(INDENT(base + 2) + `return ${l.blockStatus || 403};`);
         }
       } else if (mode === 'redirect') {
-        const suffix = (l.redirectUrl || '').endsWith('/') ? '' : '$request_uri';
+        const suffix = (l.redirectUrl || '').endsWith('/') || (l.redirectUrl || '').includes('?') ? '' : '$request_uri';
         lines.push(INDENT(base + 2) + `return ${l.redirectPermanent !== false ? 301 : 302} ${l.redirectUrl || 'https://example.com'}${suffix};`);
       } else if (mode === 'proxy') {
         if (l.fastcgiPass) {
@@ -204,7 +208,7 @@ export function generateConfig(
         const c = cacheChild.data;
         lines.push(INDENT(base + 2) + `proxy_cache ${c.zone};`);
         lines.push(INDENT(base + 2) + `proxy_cache_key ${c.keys};`);
-        lines.push(INDENT(base + 2) + `proxy_cache_valid 200 ${c.time};`);
+        lines.push(INDENT(base + 2) + `proxy_cache_valid ${c.time.includes(' ') ? c.time : `200 ${c.time}`};`);
         if (c.useStale) lines.push(INDENT(base + 2) + 'proxy_cache_use_stale error timeout updating;');
       }
 

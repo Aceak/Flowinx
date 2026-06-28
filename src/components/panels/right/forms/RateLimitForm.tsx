@@ -21,7 +21,7 @@ export function RateLimitForm({ data, onChange }: Props) {
       </label>
       <label className="flex flex-col gap-1">
         <span className="text-gray-600 dark:text-neutral-400 text-sm font-medium">突发 (burst)</span>
-        <input type="number" value={data.burst} className={INPUT_CLASS} onChange={(e) => onChange({ burst: parseInt(e.target.value) || 0 })} />
+        <input type="number" value={data.burst} className={INPUT_CLASS} onChange={(e) => onChange({ burst: parseInt(e.target.value, 10) || 0 })} />
       </label>
       <label className="flex flex-col gap-1">
         <span className="text-gray-600 dark:text-neutral-400 text-sm font-medium">共享内存大小</span>

@@ -22,7 +22,7 @@ export const NODE_DEFAULTS: Record<NodeType, Partial<NodeData>> = {
     label: '静态资源', root: '/var/www/html', index: '', tryFiles: '', expires: '30d', autoindex: false, cacheControl: '',
   },
   'cache': {
-    label: '缓存规则', zone: 'my_cache', time: '1h', maxSize: '100m', keys: '$scheme$proxy_host$request_uri', useStale: false,
+    label: '缓存规则', zone: 'my_cache', time: '1h', maxSize: '100m', zoneSize: '10m', keys: '$scheme$proxy_host$request_uri', useStale: false,
   },
   'auth': {
     label: '认证', authType: 'basic', realm: 'Restricted Access', userFile: '/etc/nginx/.htpasswd',

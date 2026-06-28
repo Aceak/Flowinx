@@ -33,6 +33,13 @@ export function CacheForm({ data, onChange }: Props) {
       </label>
 
       <label className="flex flex-col gap-1">
+        <span className="text-gray-600 dark:text-neutral-400 text-sm font-medium">内存区大小（keys_zone）</span>
+        <input type="text" value={data.zoneSize || '10m'} className={INPUT_CLASS}
+          placeholder="10m" onChange={(e) => onChange({ zoneSize: e.target.value })} />
+        <span className="text-xs text-gray-400 dark:text-neutral-500">缓存索引的内存大小，通常 1-10m</span>
+      </label>
+
+      <label className="flex flex-col gap-1">
         <span className="text-gray-600 dark:text-neutral-400 text-sm font-medium">缓存键（proxy_cache_key）</span>
         <input type="text" value={data.keys} className={INPUT_CLASS}
           placeholder="$scheme$proxy_host$request_uri" onChange={(e) => onChange({ keys: e.target.value })} />
