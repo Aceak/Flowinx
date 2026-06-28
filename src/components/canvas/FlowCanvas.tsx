@@ -111,6 +111,7 @@ export function FlowCanvas() {
         onNodeClick={onNodeClick} onPaneClick={onPaneClick} onNodeDrag={onNodeDrag} onNodeDragStop={onNodeDragStop}
         isValidConnection={isValidConnection} nodeTypes={nodeTypes}
         fitView deleteKeyCode={['Backspace', 'Delete']}
+        connectionMode="loose"
         panOnDrag={panMode}
         selectionOnDrag={!panMode}
         panActivationKeyCode="Space"

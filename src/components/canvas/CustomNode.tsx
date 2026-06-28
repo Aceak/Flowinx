@@ -96,9 +96,10 @@ export const CustomNode = memo(function CustomNode({ id, type, data, selected }:
           <p className="text-xs text-gray-500 dark:text-neutral-400">未知类型</p>
         )}
       </div>
-      <Handle type="target" position={Position.Top} id="top" className="!w-2.5 !h-2.5 !bg-gray-400 dark:!bg-neutral-500 !border-2 !border-white dark:!border-neutral-800" />
+      {/* 每边一个连接点(source)，连线拖到目标节点任意位置即可完成接入 */}
+      <Handle type="source" position={Position.Top} id="top" className="!w-2.5 !h-2.5 !bg-gray-400 dark:!bg-neutral-500 !border-2 !border-white dark:!border-neutral-800" />
       <Handle type="source" position={Position.Bottom} id="bottom" className="!w-2.5 !h-2.5 !bg-gray-400 dark:!bg-neutral-500 !border-2 !border-white dark:!border-neutral-800" />
-      <Handle type="target" position={Position.Left} id="left" className="!w-2.5 !h-2.5 !bg-gray-400 dark:!bg-neutral-500 !border-2 !border-white dark:!border-neutral-800" />
+      <Handle type="source" position={Position.Left} id="left" className="!w-2.5 !h-2.5 !bg-gray-400 dark:!bg-neutral-500 !border-2 !border-white dark:!border-neutral-800" />
       <Handle type="source" position={Position.Right} id="right" className="!w-2.5 !h-2.5 !bg-gray-400 dark:!bg-neutral-500 !border-2 !border-white dark:!border-neutral-800" />
     </div>
   );
