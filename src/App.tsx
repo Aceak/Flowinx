@@ -7,68 +7,122 @@ import { Sidebar } from './components/sidebar/Sidebar';
 import { FlowCanvas } from './components/canvas/FlowCanvas';
 import { RightPanel } from './components/panels/right/RightPanel';
 
+const MIN_W = 340, MAX_W = 600;
+
 function App() {
   const theme = useStore((s) => s.theme);
-  const [panelWidth, setPanelWidth] = useState(360);
+  const panelCollapsed = useStore((s) => s.panelCollapsed);
+  const setPanelCollapsed = useStore((s) => s.setPanelCollapsed);
+  const [panelWidth, setPanelWidth] = useState(() =>
+    window.innerWidth < 768 ? window.innerWidth * 0.85 : 360
+  );
+  const [resizing, setResizing] = useState(false);
+  const [edgeHover, setEdgeHover] = useState(false);
+  const panelRef = useRef<HTMLDivElement>(null);
   const dragging = useRef(false);
   const startX = useRef(0);
-  const startWidth = useRef(0);
+  const startW = useRef(0);
 
-  // 主题生效：在 document.documentElement 上切换 dark class
+  // 主题生效
   useEffect(() => {
     document.documentElement.classList.toggle('dark', theme === 'dark');
-    return () => {
-      document.documentElement.classList.remove('dark');
-    };
+    return () => document.documentElement.classList.remove('dark');
   }, [theme]);
 
-  const onMouseDown = useCallback((e: React.MouseEvent) => {
-    e.preventDefault();
+  // 拖拽开始
+  const beginResize = useCallback((clientX: number) => {
     dragging.current = true;
-    startX.current = e.clientX;
-    startWidth.current = panelWidth;
+    startX.current = clientX;
+    startW.current = panelWidth;
+    setResizing(true);
     document.body.style.cursor = 'col-resize';
     document.body.style.userSelect = 'none';
   }, [panelWidth]);
 
+  const EDGE = 3;
+
+  const inEdgeZone = (clientX: number, rect: DOMRect) =>
+    clientX >= rect.left - EDGE && clientX <= rect.left + EDGE;
+
+  const onMouseDown = useCallback((e: React.MouseEvent) => {
+    if (!inEdgeZone(e.clientX, e.currentTarget.getBoundingClientRect())) return;
+    e.preventDefault();
+    beginResize(e.clientX);
+  }, [beginResize]);
+
+  const onTouchStart = useCallback((e: React.TouchEvent) => {
+    if (!inEdgeZone(e.touches[0].clientX, e.currentTarget.getBoundingClientRect())) return;
+    e.preventDefault();
+    beginResize(e.touches[0].clientX);
+  }, [beginResize]);
+
+  const onPanelMouseMove = useCallback((e: React.MouseEvent) => {
+    setEdgeHover(inEdgeZone(e.clientX, e.currentTarget.getBoundingClientRect()));
+  }, []);
+  const onPanelMouseLeave = useCallback(() => setEdgeHover(false), []);
+
+  // 拖拽中：直接操作 DOM，避免 React 重渲染卡顿
   useEffect(() => {
-    const onMouseMove = (e: MouseEvent) => {
-      if (!dragging.current) return;
-      const dx = startX.current - e.clientX;
-      setPanelWidth(Math.min(600, Math.max(260, startWidth.current + dx)));
+    const onMove = (clientX: number) => {
+      if (!dragging.current || !panelRef.current) return;
+      const dx = startX.current - clientX;
+      const w = Math.min(MAX_W, Math.max(MIN_W, startW.current + dx));
+      panelRef.current.style.width = Math.min(w, window.innerWidth * 0.85) + 'px';
     };
-    const onMouseUp = () => {
+    const onEnd = () => {
+      if (!dragging.current) return;
       dragging.current = false;
       document.body.style.cursor = '';
       document.body.style.userSelect = '';
+      // 同步最终宽度到 state
+      if (panelRef.current) {
+        const w = parseFloat(panelRef.current.style.width);
+        if (!isNaN(w)) setPanelWidth(w);
+      }
+      setResizing(false);
     };
+
+    const onMouseMove = (e: MouseEvent) => onMove(e.clientX);
+    const onTouchMove = (e: TouchEvent) => { e.preventDefault(); onMove(e.touches[0].clientX); };
+    const onMouseUp = () => onEnd();
+    const onTouchEnd = () => onEnd();
+
     window.addEventListener('mousemove', onMouseMove);
     window.addEventListener('mouseup', onMouseUp);
+    window.addEventListener('touchmove', onTouchMove, { passive: false });
+    window.addEventListener('touchend', onTouchEnd);
+
     return () => {
       window.removeEventListener('mousemove', onMouseMove);
       window.removeEventListener('mouseup', onMouseUp);
+      window.removeEventListener('touchmove', onTouchMove);
+      window.removeEventListener('touchend', onTouchEnd);
     };
   }, []);
 
   return (
     <ReactFlowProvider>
-      <div className="flex h-screen w-screen overflow-hidden bg-gray-50 dark:bg-neutral-950">
+      <div className="flex h-screen w-screen overflow-hidden">
         <Sidebar />
 
         <FlowCanvas />
 
-        {/* 可拖拽的分隔条 — 点击区 8px，视觉线 1px */}
+        {/* 右侧面板 — border-l 为分割线，::before 向左延伸隐形拖拽检测区 */}
         <div
-          onMouseDown={onMouseDown}
-          className="w-2 cursor-col-resize shrink-0 flex justify-center group"
-          title="拖动调整宽度"
+          ref={panelRef}
+          style={{ width: Math.min(panelCollapsed ? 4 : panelWidth, window.innerWidth * 0.85) }}
+          className={`shrink-0 overflow-hidden h-full panel-edge ${edgeHover ? 'edge-hover' : ''}
+            ${panelCollapsed ? '' : 'border-l border-gray-200 dark:border-white/10'}
+            transition-[border-color,box-shadow] duration-150 ease-out
+            ${resizing ? '' : 'transition-[width] duration-200'}`}
+          onMouseDown={panelCollapsed ? undefined : onMouseDown}
+          onTouchStart={panelCollapsed ? undefined : onTouchStart}
+          onMouseMove={onPanelMouseMove}
+          onMouseLeave={onPanelMouseLeave}
+          onDoubleClick={() => setPanelCollapsed(!panelCollapsed)}
+          title={panelCollapsed ? '双击展开面板' : '双击折叠面板 · 拖拽调整宽度'}
         >
-          <div className="w-px h-full bg-gray-300 dark:bg-neutral-600 group-hover:bg-blue-400 transition-colors" />
-        </div>
-
-        {/* 右侧面板，宽度可调，限制最大不超过视口 60% */}
-        <div style={{ width: Math.min(panelWidth, window.innerWidth * 0.65) }} className="shrink-0 overflow-hidden">
-          <RightPanel />
+          {!panelCollapsed && <RightPanel />}
         </div>
       </div>
     </ReactFlowProvider>

@@ -31,6 +31,15 @@ export interface AppState {
   deleteMode: boolean;
   toggleDeleteMode: () => void;
 
+  panelCollapsed: boolean;
+  panelPinned: boolean;
+  panelTab: 'config' | 'output';
+  configMode: 'main' | 'conf.d';
+  setPanelCollapsed: (v: boolean) => void;
+  setPanelPinned: (v: boolean) => void;
+  setPanelTab: (v: 'config' | 'output') => void;
+  setConfigMode: (v: 'main' | 'conf.d') => void;
+
   theme: 'light' | 'dark';
   toggleTheme: () => void;
 

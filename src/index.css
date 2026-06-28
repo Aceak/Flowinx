@@ -22,7 +22,7 @@
   }
 
   body {
-    @apply bg-white text-gray-900 dark:bg-neutral-950 dark:text-neutral-200;
+    @apply bg-white text-gray-900 dark:bg-neutral-900 dark:text-neutral-200;
   }
 }
 
@@ -53,6 +53,24 @@ html.dark ::-webkit-scrollbar-thumb {
   border-radius: 4px;
 }
 
+/* 面板左边缘高亮（JS 触发） */
+.panel-edge.edge-hover {
+  border-left-color: #60a5fa !important;
+  box-shadow: -2px 0 12px -2px rgba(96, 165, 250, 0.3);
+}
+.dark .panel-edge.edge-hover {
+  border-left-color: #3b82f6 !important;
+  box-shadow: -2px 0 12px -2px rgba(59, 130, 246, 0.4);
+}
+
+/* 折叠态悬浮微弱提示 */
+.panel-edge.edge-hover:not(.border-l) {
+  background: rgba(96, 165, 250, 0.08);
+}
+.dark .panel-edge.edge-hover:not(.border-l) {
+  background: rgba(59, 130, 246, 0.1);
+}
+
 /* React Flow overrides */
 .react-flow__node {
   cursor: pointer;
@@ -60,6 +78,19 @@ html.dark ::-webkit-scrollbar-thumb {
 
 .react-flow__attribution {
   display: none !important;
+}
+
+/* 触控设备：放大 Handle、禁止浏览器手势 */
+.react-flow__pane {
+  touch-action: none;
+}
+
+@media (pointer: coarse) {
+  .react-flow__handle {
+    width: 18px !important;
+    height: 18px !important;
+    border-width: 3px !important;
+  }
 }
 
 /* CodeMirror 配置代码使用 Consolas */
@@ -74,18 +105,20 @@ html.dark ::-webkit-scrollbar-thumb {
   font-size: 12px !important;
 }
 
-/* 深色模式 CodeMirror 背景覆盖（匹配应用 neutral 色调） */
+/* 深色模式 CodeMirror — 行号区与代码区同背景色，仅靠文字颜色区分 */
 .dark .cm-editor {
   background-color: #171717 !important;
 }
 .dark .cm-editor .cm-gutters {
-  background-color: #0a0a0a !important;
-  border-right-color: #404040 !important;
-  color: #a3a3a3;
-}
-.dark .cm-editor .cm-activeLineGutter,
-.dark .cm-editor .cm-activeLine {
   background-color: #171717 !important;
+  border-right-color: transparent !important;
+  color: #525252;
+}
+.dark .cm-editor .cm-activeLineGutter {
+  background-color: #171717 !important;
+}
+.dark .cm-editor .cm-activeLine {
+  background-color: #1e1e1e !important;
 }
 .dark .cm-editor .cm-cursor {
   border-left-color: #e5e5e5;

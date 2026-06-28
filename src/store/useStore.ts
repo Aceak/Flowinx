@@ -34,6 +34,15 @@ export const useStore = create<AppState>((set, get) => ({
   deleteMode: false,
   toggleDeleteMode: () => set({ deleteMode: !get().deleteMode }),
 
+  panelCollapsed: false,
+  panelPinned: false,
+  panelTab: 'config' as const,
+  configMode: 'conf.d' as const,
+  setPanelCollapsed: (v) => set({ panelCollapsed: v }),
+  setPanelPinned: (v) => set({ panelPinned: v }),
+  setPanelTab: (v) => set({ panelTab: v }),
+  setConfigMode: (v) => set({ configMode: v }),
+
   // 主题状态（localStorage 持久化）
   theme: readPersistedTheme(),
   toggleTheme: () => {
@@ -135,9 +144,9 @@ export const useStore = create<AppState>((set, get) => ({
   configErrors: [],
 
   generateConfig: () => {
-    const { nodes, edges } = get();
+    const { nodes, edges, configMode } = get();
     try {
-      const result = generateNginxConfig(nodes, edges);
+      const result = generateNginxConfig(nodes, edges, configMode);
       set({ generatedConfig: result.config, configErrors: result.errors });
     } catch (err) {
       set({
