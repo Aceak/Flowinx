@@ -1,4 +1,4 @@
-import { useCallback, useState } from 'react';
+import { useState } from 'react';
 import { useStore } from '../../store/useStore';
 import { NodePalette } from './DraggableItem';
 import { ThemeToggle } from '../theme/ThemeToggle';
@@ -7,7 +7,7 @@ import { configToGraph } from '../../utils/nginxParser';
 import { templates } from '../../templates';
 
 export function Sidebar() {
-  const { clearCanvas, generateConfig, loadGraph, nodes, generatedConfig } = useStore();
+  const { clearCanvas, generateConfig, loadGraph, nodes } = useStore();
   const setPanelCollapsed = useStore((s) => s.setPanelCollapsed);
   const setPanelTab = useStore((s) => s.setPanelTab);
   const [open, setOpen] = useState(false);

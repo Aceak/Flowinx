@@ -1,6 +1,5 @@
 import { useState } from 'react';
 import { BaseEdge, getBezierPath, type EdgeProps } from '@xyflow/react';
-import type { GraphEdgeData } from '../../types/edges';
 import { useStore } from '../../store/useStore';
 
 const SELECTED_STYLE = {
@@ -18,7 +17,7 @@ const DELETE_HOVER_STYLE = {
 export function CustomEdge({
   id, sourceX, sourceY, targetX, targetY,
   sourcePosition, targetPosition, selected, markerEnd,
-}: EdgeProps<GraphEdgeData>) {
+}: EdgeProps) {
   const [edgePath] = getBezierPath({
     sourceX, sourceY, sourcePosition,
     targetX, targetY, targetPosition,

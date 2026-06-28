@@ -2,7 +2,7 @@ import type { Node, Edge } from '@xyflow/react';
 import type { NodeData } from '../types/nodes';
 import type { GraphEdgeData } from '../types/edges';
 
-const NODE_W = 180, NODE_H = 90;
+const NODE_W = 180;
 const V_GAP = 140, H_GAP = 40, TOP = 50;
 
 export function autoLayout(
@@ -11,7 +11,6 @@ export function autoLayout(
 ): Node<NodeData>[] {
   if (nodes.length === 0) return nodes;
 
-  const nodeMap = new Map(nodes.map((n) => [n.id, n]));
   const children = new Map<string, string[]>();
   const parents = new Map<string, string[]>();
   for (const n of nodes) { children.set(n.id, []); parents.set(n.id, []); }

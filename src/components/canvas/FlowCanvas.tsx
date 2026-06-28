@@ -5,7 +5,6 @@ import { useStore } from '../../store/useStore';
 import { CustomNode } from './CustomNode';
 import { CustomEdge } from './CustomEdge';
 import type { NodeType } from '../../types/nodes';
-import type { GraphEdgeData } from '../../types/edges';
 import { VALID_CONNECTIONS } from '../../types/edges';
 import { Grid3x3, Minus, MousePointer2, Hand, Eraser, ZoomIn, ZoomOut, Maximize, Trash2, Pin, PinOff } from 'lucide-react';
 
@@ -202,7 +201,6 @@ export function FlowCanvas() {
         onNodeDrag={onNodeDrag} onNodeDragStop={onNodeDragStop}
         isValidConnection={isValidConnection} nodeTypes={nodeTypes} edgeTypes={edgeTypes}
         fitView deleteKeyCode={['Backspace', 'Delete']}
-        connectionMode="loose"
         panOnDrag={panMode}
         selectionOnDrag={!panMode && !deleteMode}
         panActivationKeyCode="Space"

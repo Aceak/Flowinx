@@ -248,7 +248,7 @@ function tokenize(src: string): string[] {
   return tokens;
 }
 
-function parseBlock(tokens: string[], start: number, context: string): { block: NginxBlock; next: number } | null {
+function parseBlock(tokens: string[], start: number, _context: string): { block: NginxBlock; next: number } | null {
   let i = start;
   while (i < tokens.length && tokens[i] === '}' ) i++;
   if (i >= tokens.length || tokens[i] === '}') return null;
