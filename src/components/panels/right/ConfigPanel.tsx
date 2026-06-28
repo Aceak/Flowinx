@@ -6,8 +6,11 @@ import { ServerBlockForm } from './forms/ServerBlockForm';
 import { LocationForm } from './forms/LocationForm';
 import { UpstreamForm } from './forms/UpstreamForm';
 import { BackendServerForm } from './forms/BackendServerForm';
-import { RedirectForm } from './forms/RedirectForm';
 import { StaticForm } from './forms/StaticForm';
+import { CacheForm } from './forms/CacheForm';
+import { AuthForm } from './forms/AuthForm';
+import { RateLimitForm } from './forms/RateLimitForm';
+import { MapForm } from './forms/MapForm';
 import { Trash2, X } from 'lucide-react';
 
 function renderForm(type: NodeType, data: NodeData, onChange: (d: Partial<NodeData>) => void) {
@@ -16,8 +19,11 @@ function renderForm(type: NodeType, data: NodeData, onChange: (d: Partial<NodeDa
     case 'location': return <LocationForm data={data as never} onChange={onChange as never} />;
     case 'upstream': return <UpstreamForm data={data as never} onChange={onChange as never} />;
     case 'backend':  return <BackendServerForm data={data as never} onChange={onChange as never} />;
-    case 'redirect': return <RedirectForm data={data as never} onChange={onChange as never} />;
     case 'static':   return <StaticForm data={data as never} onChange={onChange as never} />;
+    case 'cache':      return <CacheForm data={data as never} onChange={onChange as never} />;
+    case 'auth':       return <AuthForm data={data as never} onChange={onChange as never} />;
+    case 'rate_limit': return <RateLimitForm data={data as never} onChange={onChange as never} />;
+    case 'map':        return <MapForm data={data as never} onChange={onChange as never} />;
     default: return <p className="text-sm text-gray-500 dark:text-neutral-400">未知节点类型</p>;
   }
 }

@@ -3,6 +3,7 @@ import type { NodeData } from '../types/nodes';
 import type { GraphEdgeData } from '../types/edges';
 import { generateId, generateEdgeId } from './idGenerator';
 import { autoLayout } from './layoutGraph';
+import { NODE_LABELS } from '../constants/labels';
 
 interface NginxBlock {
   name: string;
@@ -38,13 +39,13 @@ export function configToGraph(config: string): { nodes: Node<NodeData>[]; edges:
       : b.directives['ip_hash'] ? 'ip-hash' : 'round-robin';
     rawNodes.push({
       id, type: 'upstream', position: { x: 0, y: 0 },
-      data: { label: b.args, name: b.args, strategy, keepalive: parseInt(b.directives['keepalive'] || '0') || 0 } as NodeData,
+      data: { label: NODE_LABELS['upstream'], name: b.args, strategy, keepalive: parseInt(b.directives['keepalive'] || '0') || 0 } as NodeData,
     });
     for (const serverStr of (b.directives['_servers'] || '').split('\n').filter(Boolean)) {
       const beId = generateId();
       rawNodes.push({
         id: beId, type: 'backend', position: { x: 0, y: 0 },
-        data: { label: serverStr.split(' ')[0], address: serverStr } as NodeData,
+        data: { label: NODE_LABELS['backend'], address: serverStr } as NodeData,
       });
       edges.push({ id: generateEdgeId(), source: id, target: beId, type: 'bezier', sourceHandle: 'bottom-source', targetHandle: 'top-target', data: { label: '', order: 0 } });
     }
@@ -54,15 +55,38 @@ export function configToGraph(config: string): { nodes: Node<NodeData>[]; edges:
   for (const b of blocks) {
     if (b.name !== 'server') continue;
     const sId = generateId();
-    const ssl = !!b.directives['ssl_certificate'] || (b.directives['listen'] || '').includes('ssl');
     const serverName = b.directives['server_name'] || 'localhost';
+    const listenVals = (b.directives['listen'] || '').split('\n').filter(Boolean);
+    const firstListen = listenVals[0] || '80';
+    const port = parseInt(firstListen.replace(/[^\d]/g, '')) || 80;
+    const ssl = !!b.directives['ssl_certificate'] || firstListen.includes('ssl');
+    const ipv6Listen = listenVals.find((v: string) => v.includes('[')) || '';
+    // 未映射到字段的指令存入 extra
+    const mapped = new Set(['listen','server_name','ssl_certificate','ssl_certificate_key','root','index',
+      'http2','ssl_protocols','ssl_stapling','ssl_stapling_verify','ssl_trusted_certificate',
+      'add_header','client_max_body_size','access_log','error_log']);
+    const extraLines: string[] = [];
+    for (const [k, v] of Object.entries(b.directives)) {
+      if (mapped.has(k)) continue;
+      if (v) extraLines.push(`${k} ${v};`);
+    }
     rawNodes.push({
       id: sId, type: 'server', position: { x: 0, y: 0 },
       data: {
-        label: serverName, serverName,
-        listenAddr: '', port: parseInt((b.directives['listen'] || '80').replace(/\D/g, '') || '80') || 80,
+        label: NODE_LABELS['server'], serverName, listenAddr: '', port,
         ssl, sslCert: b.directives['ssl_certificate'] || '', sslKey: b.directives['ssl_certificate_key'] || '',
         aliases: '', hasStatic: true, root: b.directives['root'] || '', index: b.directives['index'] || '',
+        http2: b.directives['http2'] === 'on',
+        sslProtocols: b.directives['ssl_protocols'] || 'TLSv1.2 TLSv1.3',
+        sslStapling: b.directives['ssl_stapling'] === 'on',
+        sslStaplingVerify: b.directives['ssl_stapling_verify'] === 'on',
+        sslTrustedCert: b.directives['ssl_trusted_certificate'] || '',
+        addHeaders: b.directives['add_header'] || '',
+        clientMaxBodySize: b.directives['client_max_body_size'] || '',
+        accessLog: b.directives['access_log'] || '',
+        errorLog: b.directives['error_log'] || '',
+        listenIPv6: ipv6Listen,
+        extra: extraLines.join('\n'),
       } as NodeData,
     });
 
@@ -71,34 +95,98 @@ export function configToGraph(config: string): { nodes: Node<NodeData>[]; edges:
       if (loc.name !== 'location') continue;
       const lId = generateId();
       const hasReturn = !!loc.directives['return'];
-      const hasProxy = !!loc.directives['proxy_pass'];
-      const mode = hasReturn ? 'block' : hasProxy ? 'proxy' : 'static';
-      const locPath = loc.args;
-      const locLabel = locPath === '/' ? '首页' : locPath;
+      const hasProxy = !!loc.directives['proxy_pass'] || !!loc.directives['fastcgi_pass'];
+      const returnVal = loc.directives['return'] || '';
+      const isRedirect = hasReturn && (returnVal.startsWith('301 ') || returnVal.startsWith('302 ') || returnVal.startsWith('http'));
+      const mode = isRedirect ? 'redirect' : hasReturn ? 'block' : hasProxy ? 'proxy' : 'static';
+      const isRegex = loc.args.startsWith('~');
+      const locPath = isRegex ? loc.args : loc.args.split(' ')[0]; // "~ \.php$" or "/api"
       rawNodes.push({
         id: lId, type: 'location', position: { x: 0, y: 0 },
         data: {
-          label: locLabel, path: locPath, mode,
+          label: NODE_LABELS['location'], path: locPath, mode,
           proxyPass: loc.directives['proxy_pass'] || '',
-          root: loc.directives['root'] || '', useIndex: false,
-          index: loc.directives['index'] || '', xff: !!loc.directives['proxy_set_header'],
-          blockStatus: parseInt((loc.directives['return'] || '403').split(' ')[0]) || 403,
-          allow: '', deny: '', extra: '',
+          fastcgiPass: loc.directives['fastcgi_pass'] || '',
+          xff: !!loc.directives['proxy_set_header'],
+          blockStatus: parseInt((returnVal || '403').split(' ')[0]) || 403,
+          redirectUrl: isRedirect ? returnVal.replace(/^(301|302) /, '') : '',
+          redirectPermanent: isRedirect ? returnVal.startsWith('301') : true,
+          allow: '', deny: '', includes: loc.directives['include'] || '',
+          fastcgiIndex: loc.directives['fastcgi_index'] || '',
+          fastcgiParams: loc.directives['fastcgi_param'] || '', extra: '',
         } as NodeData,
       });
       edges.push({ id: generateEdgeId(), source: sId, target: lId, type: 'bezier', sourceHandle: 'bottom-source', targetHandle: 'top-target', data: { label: '', order: 0 } });
 
-      // proxy target
-      const proxyPass = loc.directives['proxy_pass'];
-      if (proxyPass && proxyPass.startsWith('http://')) {
-        const target = proxyPass.replace('http://', '').trim();
+      // auth 指令 → 创建认证节点
+      if (loc.directives['auth_basic'] || loc.directives['auth_request'] || loc.directives['auth_jwt']) {
+        const authId = generateId();
+        const authType = loc.directives['auth_request'] ? 'request' : loc.directives['auth_jwt'] ? 'jwt' : 'basic';
+        rawNodes.push({
+          id: authId, type: 'auth', position: { x: 0, y: 0 },
+          data: {
+            label: NODE_LABELS['auth'], authType,
+            realm: (loc.directives['auth_basic'] || 'Restricted Access').replace(/"/g, ''),
+            userFile: loc.directives['auth_basic_user_file'] || '/etc/nginx/.htpasswd',
+            authUrl: loc.directives['auth_request'] || '/auth',
+            jwtKey: loc.directives['auth_jwt_key'] || loc.directives['auth_jwt_key_file'] || '',
+            jwtClaim: loc.directives['auth_jwt_claim'] || 'sub',
+            jwtKeyFile: !!loc.directives['auth_jwt_key_file'],
+          } as NodeData,
+        });
+        edges.push({ id: generateEdgeId(), source: lId, target: authId, type: 'bezier', sourceHandle: 'bottom-source', targetHandle: 'top-target', data: { label: '', order: 0 } });
+      }
+
+      // proxy_cache → 创建关联的 cache 子节点
+      if (loc.directives['proxy_cache']) {
+        const cacheId = generateId();
+        const zone = loc.directives['proxy_cache'];
+        rawNodes.push({
+          id: cacheId, type: 'cache', position: { x: 0, y: 0 },
+          data: {
+            label: NODE_LABELS['cache'], zone,
+            time: (loc.directives['proxy_cache_valid'] || '1h').replace(/^\d+\s+/, ''),
+            maxSize: '100m',
+            keys: loc.directives['proxy_cache_key'] || '$scheme$proxy_host$request_uri',
+            useStale: !!loc.directives['proxy_cache_use_stale'],
+          } as NodeData,
+        });
+        edges.push({ id: generateEdgeId(), source: lId, target: cacheId, type: 'bezier', sourceHandle: 'bottom-source', targetHandle: 'top-target', data: { label: '', order: 0 } });
+      }
+
+      // 静态 location → 创建关联的 static 子节点
+      if (mode === 'static') {
+        const stId = generateId();
+        rawNodes.push({
+          id: stId, type: 'static', position: { x: 0, y: 0 },
+          data: {
+            label: NODE_LABELS['static'],
+            root: loc.directives['root'] || '', index: loc.directives['index'] || '',
+            tryFiles: loc.directives['try_files'] || '', expires: loc.directives['expires'] || '',
+            autoindex: false,
+          } as NodeData,
+        });
+        edges.push({ id: generateEdgeId(), source: lId, target: stId, type: 'bezier', sourceHandle: 'bottom-source', targetHandle: 'top-target', data: { label: '', order: 0 } });
+      }
+
+      // proxy / fastcgi target
+      const proxyPass = loc.directives['proxy_pass'] || loc.directives['fastcgi_pass'];
+      if (proxyPass) {
+        const target = proxyPass.replace(/^https?:\/\//, '').trim();
+        if (!target) continue;
         const upstream = rawNodes.find((n) => n.type === 'upstream' && (n.data as { name: string }).name === target);
         if (upstream) {
           edges.push({ id: generateEdgeId(), source: lId, target: upstream.id, type: 'bezier', sourceHandle: 'bottom-source', targetHandle: 'top-target', data: { label: '', order: 0 } });
-        } else if (target.includes(':')) {
+        } else if (target.includes(':') || target.includes('.')) {
+          // IP:port or hostname → backend
           const beId = generateId();
-          rawNodes.push({ id: beId, type: 'backend', position: { x: 0, y: 0 }, data: { label: target, address: target } as NodeData });
+          rawNodes.push({ id: beId, type: 'backend', position: { x: 0, y: 0 }, data: { label: NODE_LABELS['backend'], address: target } as NodeData });
           edges.push({ id: generateEdgeId(), source: lId, target: beId, type: 'bezier', sourceHandle: 'bottom-source', targetHandle: 'top-target', data: { label: '', order: 0 } });
+        } else {
+          // probably upstream name like php-fpm — create upstream node
+          const upId = generateId();
+          rawNodes.push({ id: upId, type: 'upstream', position: { x: 0, y: 0 }, data: { label: NODE_LABELS['upstream'], name: target, strategy: 'round-robin', keepalive: 0 } as NodeData });
+          edges.push({ id: generateEdgeId(), source: lId, target: upId, type: 'bezier', sourceHandle: 'bottom-source', targetHandle: 'top-target', data: { label: '', order: 0 } });
         }
       }
     }
@@ -121,10 +209,16 @@ function tokenize(src: string): string[] {
     if (ch === '{' || ch === '}' || ch === ';') { tokens.push(ch); i++; continue; }
     let token = '';
     if (ch === '"' || ch === "'") {
-      const quote = ch; i++;
+      const quote = ch;
+      token = quote; i++;
       while (i < src.length && src[i] !== quote) token += src[i++];
-      i++;
+      token += quote; i++;
+    } else if (ch === '~') {
+      // regex location modifier: ~ or ~*
+      token = ch; i++;
+      if (i < src.length && src[i] === '*') { token += '*'; i++; }
     } else {
+      // 允许 $ [ ] . - _ / ? = & + 等 nginx 常用字符
       while (i < src.length && !/[\s{};]/.test(src[i]) && src[i] !== '#') token += src[i++];
     }
     if (token) tokens.push(token);
@@ -139,8 +233,9 @@ function parseBlock(tokens: string[], start: number, context: string): { block: 
 
   const name = tokens[i++];
   let args = '';
+  // 收集 args，跳过 location 的正则修饰符 (~ / ~*) 和正则模式
   while (i < tokens.length && tokens[i] !== '{') args += (args ? ' ' : '') + tokens[i++];
-  if (i >= tokens.length) return null;
+  if (i >= tokens.length || tokens[i] !== '{') return null;
   i++; // skip '{'
 
   const directives: Record<string, string> = {};
@@ -148,7 +243,12 @@ function parseBlock(tokens: string[], start: number, context: string): { block: 
 
   while (i < tokens.length && tokens[i] !== '}') {
     if (tokens[i] === ';') { i++; continue; }
-    if (tokens[i + 1] === '{' || (tokens[i + 2] === '{' && tokens[i + 1] !== ';')) {
+    // 向前扫描：是否有 { 在 ; 或 } 之前出现（处理 location ~ pattern { 等）
+    let isBlock = false;
+    for (let j = i; j < tokens.length && tokens[j] !== ';' && tokens[j] !== '}'; j++) {
+      if (tokens[j] === '{') { isBlock = true; break; }
+    }
+    if (isBlock) {
       const result = parseBlock(tokens, i, name);
       if (result) { blocks.push(result.block); i = result.next; }
       else i++;
@@ -157,9 +257,11 @@ function parseBlock(tokens: string[], start: number, context: string): { block: 
       let value = '';
       while (i < tokens.length && tokens[i] !== ';' && tokens[i] !== '{' && tokens[i] !== '}') value += (value ? ' ' : '') + tokens[i++];
       if (tokens[i] === ';') i++;
-      // special: collect servers in upstream
+      // 同名指令叠加（如多个 listen, add_header）
       if (name === 'upstream' && dirName === 'server') {
         directives['_servers'] = (directives['_servers'] || '') + value + '\n';
+      } else if (directives[dirName]) {
+        directives[dirName] += '\n' + value;
       } else {
         directives[dirName] = value;
       }

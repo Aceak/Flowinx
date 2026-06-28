@@ -6,7 +6,7 @@ import { configToGraph } from '../../../../utils/nginxParser';
 import { Copy, AlertTriangle, CheckCircle2, FileText, Loader2 } from 'lucide-react';
 
 export function OutputPanel() {
-  const { generatedConfig, configErrors, generateConfig, nodes } = useStore();
+  const { generatedConfig, configErrors, generateConfig } = useStore();
   const configMode = useStore((s) => s.configMode);
   const setConfigMode = useStore((s) => s.setConfigMode);
   const theme = useStore((s) => s.theme);
@@ -15,7 +15,7 @@ export function OutputPanel() {
   const [syncing, setSyncing] = useState(false);
   const lastSynced = useRef<string | null>(null);
 
-  const displayConfig = editedConfig ?? generatedConfig;
+  const displayConfig = editedConfig ?? generatedConfig ?? '';
 
   // 语法校验
   const { syntaxErrors } = useMemo(() => {
@@ -38,7 +38,10 @@ export function OutputPanel() {
     return { errorLines: new Set(errMap.keys()), syntaxErrors: msgs };
   }, [displayConfig]);
 
-  const allErrors = [...configErrors.map((e) => e.message), ...syntaxErrors];
+  // 手动编辑时只显示语法错误，不显示画布生成错误
+  const allErrors = editedConfig
+    ? syntaxErrors
+    : [...configErrors.map((e) => e.message), ...syntaxErrors];
 
   // 双向同步：配置无错误且用户编辑过 → 解析回画布
   useEffect(() => {
@@ -62,19 +65,6 @@ export function OutputPanel() {
     if (!displayConfig) return;
     try { await navigator.clipboard.writeText(displayConfig); setCopied(true); setTimeout(() => setCopied(false), 2000); } catch { /* fallback */ }
   }, [displayConfig]);
-
-  if (!displayConfig) {
-    return (
-      <div className="flex-1 flex flex-col items-center justify-center text-gray-400 dark:text-neutral-500 text-sm p-4 text-center gap-2">
-        <FileText size={32} className="text-gray-300 dark:text-neutral-600" />
-        <p>从左侧拖入节点开始配置</p>
-        {nodes.length > 0 && (
-          <button onClick={generateConfig}
-            className="mt-2 px-4 py-2 bg-green-600 dark:bg-green-700 text-white rounded-lg hover:bg-green-700 dark:hover:bg-green-600 text-sm">立即生成</button>
-        )}
-      </div>
-    );
-  }
 
   return (
     <div className="flex-1 flex flex-col">

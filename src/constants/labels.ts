@@ -5,24 +5,37 @@ export const NODE_LABELS: Record<NodeType, string> = {
   'location': '路径规则',
   'upstream': '后端组',
   'backend':  '后端服务器',
-  'redirect': '重定向',
   'static':   '静态资源',
+  'cache':      '缓存规则',
+  'auth':       '认证',
+  'rate_limit': '限流',
+  'map':        '映射',
 };
 
 export const NODE_CATEGORIES = [
   {
-    key: 'main',
-    label: '主要',
-    types: ['server', 'location'] as NodeType[],
+    key: 'entry',
+    label: '流量入口',
+    types: ['server'] as NodeType[],
   },
   {
-    key: 'proxy',
-    label: '反向代理',
+    key: 'routing',
+    label: '路由转发',
+    types: ['location', 'map'] as NodeType[],
+  },
+  {
+    key: 'backend',
+    label: '后端服务',
     types: ['upstream', 'backend'] as NodeType[],
   },
   {
-    key: 'extra',
-    label: '其他功能',
-    types: ['redirect', 'static'] as NodeType[],
+    key: 'content',
+    label: '内容处理',
+    types: ['static', 'cache'] as NodeType[],
+  },
+  {
+    key: 'security',
+    label: '安全控制',
+    types: ['auth', 'rate_limit'] as NodeType[],
   },
 ];

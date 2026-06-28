@@ -2,7 +2,7 @@ import { useCallback, useState } from 'react';
 import { useStore } from '../../store/useStore';
 import { NodePalette } from './DraggableItem';
 import { ThemeToggle } from '../theme/ThemeToggle';
-import { Trash2, Play, FileUp, FileDown, Menu, X } from 'lucide-react';
+import { Trash2, FileCode2, FileUp, FileDown, Menu, X } from 'lucide-react';
 import { configToGraph } from '../../utils/nginxParser';
 import { templates } from '../../templates';
 
@@ -101,9 +101,9 @@ export function Sidebar() {
       </div>
 
       <div className="p-3 border-t border-gray-200 dark:border-neutral-700 flex flex-col gap-1.5">
-        <button onClick={handleGenerate} disabled={nodes.length === 0}
-          className="flex items-center justify-center gap-1.5 w-full px-3 py-2 bg-green-600 dark:bg-green-700 text-white rounded-lg hover:bg-green-700 dark:hover:bg-green-600 disabled:opacity-40 disabled:cursor-not-allowed text-sm font-medium">
-          <Play size={15} />查看配置
+        <button onClick={handleGenerate}
+          className="flex items-center justify-center gap-1.5 w-full px-3 py-2 bg-green-600 dark:bg-green-700 text-white rounded-lg hover:bg-green-700 dark:hover:bg-green-600 text-sm font-medium">
+          <FileCode2 size={15} />配置文件
         </button>
         <div className="flex gap-1.5">
           <button onClick={handleExport} disabled={nodes.length === 0}

@@ -11,7 +11,8 @@ import { Grid3x3, Minus, MousePointer2, Hand, Eraser, ZoomIn, ZoomOut, Maximize,
 
 const nodeTypes = {
   server: CustomNode, location: CustomNode, upstream: CustomNode,
-  backend: CustomNode, redirect: CustomNode, static: CustomNode,
+  backend: CustomNode, static: CustomNode, cache: CustomNode,
+  auth: CustomNode, rate_limit: CustomNode, map: CustomNode,
 };
 
 const edgeTypes = { bezier: CustomEdge };
@@ -57,11 +58,13 @@ export function FlowCanvas() {
 
   const miniMapNodeColor = useCallback((n: { type?: string }) => {
     const colors: Record<string, string> = isDark ? {
-      'server': '#6ee7b7', 'location': '#5eead4', 'upstream': '#d8b4fe',
-      'backend': '#f9a8d4', 'redirect': '#67e8f9', 'static': '#fcd34d',
+      'server': '#60a5fa', 'location': '#2dd4bf', 'upstream': '#c084fc',
+      'backend': '#34d399', 'static': '#fbbf24', 'cache': '#fb923c',
+      'auth': '#f87171', 'rate_limit': '#fda4af', 'map': '#9ca3af',
     } : {
-      'server': '#10b981', 'location': '#14b8a6', 'upstream': '#a855f7',
-      'backend': '#ec4899', 'redirect': '#06b6d4', 'static': '#f59e0b',
+      'server': '#3b82f6', 'location': '#14b8a6', 'upstream': '#a855f7',
+      'backend': '#10b981', 'static': '#f59e0b', 'cache': '#f97316',
+      'auth': '#ef4444', 'rate_limit': '#f43f5e', 'map': '#6b7280',
     };
     return colors[n.type || ''] || (isDark ? '#737373' : '#6b7280');
   }, [isDark]);
@@ -217,6 +220,12 @@ export function FlowCanvas() {
       </ReactFlow>
 
       <div className="absolute bottom-3 left-2 sm:bottom-4 sm:left-4 z-10 flex gap-1 sm:gap-1.5">
+        <button onClick={() => setPanelPinned(!panelPinned)}
+          title={panelPinned ? '已固定 · 点击取消' : '未固定 · 点击固定'}
+          className={`p-1.5 sm:p-2 border rounded-lg shadow-sm transition-colors ${panelPinned ? 'bg-blue-50 dark:bg-blue-900/30 border-blue-300 dark:border-blue-600 text-blue-500 dark:text-blue-400' : 'bg-white dark:bg-neutral-800 border-gray-200 dark:border-neutral-700 hover:bg-gray-50 dark:hover:bg-neutral-700 text-gray-400 dark:text-neutral-500'}`}>
+          {panelPinned ? <Pin size={15} /> : <PinOff size={15} />}
+        </button>
+        <div className="w-px bg-gray-200 dark:bg-neutral-700 my-1" />
         <button onClick={() => setGridLines(!gridLines)}
           title={gridLines ? '切换为点阵' : '切换为网格线'}
           className="p-1.5 sm:p-2 bg-white dark:bg-neutral-800 border border-gray-200 dark:border-neutral-700 rounded-lg shadow-sm hover:bg-gray-50 dark:hover:bg-neutral-700 text-gray-500 dark:text-neutral-400 transition-colors">
@@ -238,12 +247,6 @@ export function FlowCanvas() {
           title="删除模式"
           className={`p-1.5 sm:p-2 border rounded-lg shadow-sm transition-colors ${deleteMode ? 'bg-red-50 dark:bg-red-900/30 border-red-300 dark:border-red-600 text-red-600 dark:text-red-400' : 'bg-white dark:bg-neutral-800 border-gray-200 dark:border-neutral-700 hover:bg-gray-50 dark:hover:bg-neutral-700 text-gray-500 dark:text-neutral-400'}`}>
           <Eraser size={15} />
-        </button>
-        <div className="w-px bg-gray-200 dark:bg-neutral-700 my-1" />
-        <button onClick={() => setPanelPinned(!panelPinned)}
-          title={panelPinned ? '已固定 · 点击取消' : '未固定 · 点击固定'}
-          className={`p-1.5 sm:p-2 border rounded-lg shadow-sm transition-colors ${panelPinned ? 'bg-blue-50 dark:bg-blue-900/30 border-blue-300 dark:border-blue-600 text-blue-500 dark:text-blue-400' : 'bg-white dark:bg-neutral-800 border-gray-200 dark:border-neutral-700 hover:bg-gray-50 dark:hover:bg-neutral-700 text-gray-400 dark:text-neutral-500'}`}>
-          {panelPinned ? <Pin size={15} /> : <PinOff size={15} />}
         </button>
         <div className="w-px bg-gray-200 dark:bg-neutral-700 my-1" />
         <button onClick={() => zoomIn()} title="放大"

@@ -1,6 +1,6 @@
 import type { NodeType } from './nodes';
 
-const ALL: NodeType[] = ['server', 'location', 'upstream', 'backend', 'redirect', 'static'];
+const ALL: NodeType[] = ['server', 'location', 'upstream', 'backend', 'static', 'cache', 'auth', 'rate_limit', 'map'];
 
 export const VALID_CONNECTIONS: Record<NodeType, NodeType[]> = {
   'server':   ALL,

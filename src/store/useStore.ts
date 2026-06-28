@@ -36,7 +36,7 @@ export const useStore = create<AppState>((set, get) => ({
   toggleDeleteMode: () => set({ deleteMode: !get().deleteMode }),
 
   panelCollapsed: false,
-  panelPinned: false,
+  panelPinned: true,
   panelTab: 'config' as const,
   configMode: 'conf.d' as const,
   setPanelCollapsed: (v) => set({ panelCollapsed: v }),

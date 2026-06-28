@@ -62,6 +62,11 @@ export function ServerBlockForm({ data, onChange }: Props) {
             <input type="text" value={data.sslKey} className={INPUT_CLASS_COMPACT}
               placeholder="/etc/nginx/ssl/privkey.pem" onChange={(e) => onChange({ sslKey: e.target.value })} />
           </label>
+          <label className="flex items-center gap-2 text-sm cursor-pointer pt-1 border-t dark:border-neutral-700">
+            <input type="checkbox" checked={data.redirectHttp} className={CHECKBOX_CLASS}
+              onChange={(e) => onChange({ redirectHttp: e.target.checked })} />
+            <span className="text-gray-600 dark:text-neutral-400 text-xs">自动将 80 端口重定向到 443</span>
+          </label>
         </div>
       )}
 
@@ -85,12 +90,42 @@ export function ServerBlockForm({ data, onChange }: Props) {
       </div>
 
       {data.hasStatic && (
-        <label className="flex flex-col gap-1">
-          <span className="text-gray-600 dark:text-neutral-400 text-sm font-medium">网站文件目录</span>
-          <input type="text" value={data.root} className={INPUT_CLASS}
-            placeholder="/var/www/html" onChange={(e) => onChange({ root: e.target.value })} />
-        </label>
+        <>
+          <label className="flex flex-col gap-1">
+            <span className="text-gray-600 dark:text-neutral-400 text-sm font-medium">网站文件目录</span>
+            <input type="text" value={data.root} className={INPUT_CLASS}
+              placeholder="/var/www/html" onChange={(e) => onChange({ root: e.target.value })} />
+          </label>
+          <label className="flex flex-col gap-1">
+            <span className="text-gray-600 dark:text-neutral-400 text-sm font-medium">默认首页</span>
+            <input type="text" value={data.index} className={INPUT_CLASS}
+              placeholder="index.html index.htm" onChange={(e) => onChange({ index: e.target.value })} />
+          </label>
+        </>
       )}
+
+      {/* Gzip */}
+      <div className="border-t dark:border-neutral-700 pt-3">
+        <label className="flex items-center gap-2 text-sm cursor-pointer">
+          <input type="checkbox" checked={data.gzip} className={CHECKBOX_CLASS}
+            onChange={(e) => onChange({ gzip: e.target.checked })} />
+          <span className="text-gray-700 dark:text-neutral-300 font-medium">启用 Gzip 压缩</span>
+        </label>
+        {data.gzip && (
+          <div className="mt-2 space-y-2 pl-6">
+            <label className="flex flex-col gap-1">
+              <span className="text-gray-500 dark:text-neutral-400 text-xs">压缩类型</span>
+              <input type="text" value={data.gzipTypes} className={INPUT_CLASS}
+                onChange={(e) => onChange({ gzipTypes: e.target.value })} />
+            </label>
+            <label className="flex flex-col gap-1">
+              <span className="text-gray-500 dark:text-neutral-400 text-xs">最小压缩长度 (bytes)</span>
+              <input type="text" value={data.gzipMinLength} className={INPUT_CLASS}
+                placeholder="1000" onChange={(e) => onChange({ gzipMinLength: e.target.value })} />
+            </label>
+          </div>
+        )}
+      </div>
 
       <button type="button" onClick={() => setShowAdvanced(!showAdvanced)}
         className="text-xs text-gray-500 dark:text-neutral-400 hover:text-gray-700 dark:hover:text-neutral-300 flex items-center gap-1">
@@ -99,13 +134,6 @@ export function ServerBlockForm({ data, onChange }: Props) {
 
       {showAdvanced && (
         <div className="space-y-3 border-t dark:border-neutral-700 pt-3">
-          {data.hasStatic && (
-            <label className="flex flex-col gap-1">
-              <span className="text-gray-500 dark:text-neutral-400 text-xs">首页文件（空格分隔）</span>
-              <input type="text" value={data.index} className={INPUT_CLASS}
-                onChange={(e) => onChange({ index: e.target.value })} />
-            </label>
-          )}
           <label className="flex flex-col gap-1">
             <span className="text-gray-500 dark:text-neutral-400 text-xs">域名别名（空格分隔，可选）</span>
             <input type="text" value={data.aliases} className={INPUT_CLASS}

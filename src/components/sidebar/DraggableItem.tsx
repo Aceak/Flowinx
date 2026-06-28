@@ -64,15 +64,43 @@ export function DraggableItem({ type }: DraggableItemProps) {
     touched.current = true;
     const t = e.changedTouches[0];
     const pos = screenToFlowPosition({ x: t.clientX, y: t.clientY });
-    useStore.getState().addNode(type, { x: pos.x - 90, y: pos.y - 42 });
+    const existing = useStore.getState().nodes;
+    const NODE_W = 180, NODE_H = 84;
+    let x = pos.x - NODE_W / 2, y = pos.y - NODE_H / 2;
+    const overlaps = (nx: number, ny: number) => existing.some((n) =>
+      Math.abs(n.position.x - nx) < NODE_W + 20 && Math.abs(n.position.y - ny) < NODE_H + 20);
+    if (overlaps(x, y)) {
+      outer: for (let dy = 0; dy < 10; dy++) {
+        for (let dx = -5; dx <= 5; dx++) {
+          const nx = x + dx * (NODE_W + 40);
+          const ny = y + dy * (NODE_H + 30);
+          if (!overlaps(nx, ny)) { x = nx; y = ny; break outer; }
+        }
+      }
+    }
+    useStore.getState().addNode(type, { x, y });
     setGhost(null);
   }, [type, screenToFlowPosition]);
 
-  // 桌面点击：放到视口中央（触控已由 onTouchEnd 处理）
+  // 桌面点击：放到视口中央，避开已有节点
   const onClick = useCallback(() => {
     if (touched.current) { touched.current = false; return; }
     const pos = screenToFlowPosition({ x: window.innerWidth / 2, y: window.innerHeight / 2 });
-    useStore.getState().addNode(type, { x: pos.x - 90, y: pos.y - 42 });
+    const existing = useStore.getState().nodes;
+    const NODE_W = 180, NODE_H = 84;
+    let x = pos.x - NODE_W / 2, y = pos.y - NODE_H / 2;
+    const overlaps = (nx: number, ny: number) => existing.some((n) =>
+      Math.abs(n.position.x - nx) < NODE_W + 20 && Math.abs(n.position.y - ny) < NODE_H + 20);
+    if (overlaps(x, y)) {
+      outer: for (let dy = 0; dy < 10; dy++) {
+        for (let dx = -5; dx <= 5; dx++) {
+          const nx = x + dx * (NODE_W + 40);
+          const ny = y + dy * (NODE_H + 30);
+          if (!overlaps(nx, ny)) { x = nx; y = ny; break outer; }
+        }
+      }
+    }
+    useStore.getState().addNode(type, { x, y });
   }, [type, screenToFlowPosition]);
 
   return (
