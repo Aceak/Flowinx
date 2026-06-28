@@ -17,7 +17,7 @@ const nodeTypes = {
 
 const edgeTypes = { bezier: CustomEdge };
 
-const NODE_W = 180, NODE_H = 84;
+const NODE_W = 180, NODE_H = 90;
 
 function snap(n: number, g: number): number { return Math.round(n / g) * g; }
 
@@ -78,7 +78,7 @@ export function FlowCanvas() {
     const typeStr = e.dataTransfer.getData('application/reactflow-type');
     if (!typeStr) return;
     const pos = screenToFlowPosition({ x: e.clientX, y: e.clientY });
-    addNode(typeStr as NodeType, { x: pos.x - 90, y: pos.y - 42 });
+    addNode(typeStr as NodeType, { x: pos.x - 90, y: pos.y - 45 });
   }, [addNode, screenToFlowPosition]);
 
   const onNodeClick = useCallback((_e: React.MouseEvent, node: { id: string }) => {
@@ -111,18 +111,22 @@ export function FlowCanvas() {
     setMultiSelectedNodeIds(selected.map((n) => n.id));
   }, []);
 
-  // 拖拽吸附：中心点在横/竖线上靠近时对齐，否则网格吸附
-  const SNAP_DIST = 10;
+  // 拖拽吸附：所有节点中心对齐（横 40px / 纵 24px）→ 网格 20px
   const snapPosition = useCallback((nodeId: string, pos: { x: number; y: number }) => {
     const all = useStore.getState().nodes;
+    const n = all.length;
     const cx = pos.x + NODE_W / 2, cy = pos.y + NODE_H / 2;
     let x = pos.x, y = pos.y;
+    let bestDx = 40, bestDy = 24;
 
-    for (const o of all) {
+    for (let i = 0; i < n; i++) {
+      const o = all[i];
       if (o.id === nodeId) continue;
       const ocx = o.position.x + NODE_W / 2, ocy = o.position.y + NODE_H / 2;
-      if (Math.abs(cx - ocx) < SNAP_DIST) x = ocx - NODE_W / 2;
-      if (Math.abs(cy - ocy) < SNAP_DIST) y = ocy - NODE_H / 2;
+      const dx = Math.abs(cx - ocx);
+      const dy = Math.abs(cy - ocy);
+      if (dx < bestDx) { x = ocx - NODE_W / 2; bestDx = dx; }
+      if (dy < bestDy) { y = ocy - NODE_H / 2; bestDy = dy; }
     }
 
     if (x === pos.x) x = snap(pos.x, 20);

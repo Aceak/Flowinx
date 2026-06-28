@@ -1,14 +1,15 @@
 import type { NodeType } from './nodes';
 
-const ALL: NodeType[] = ['server', 'location', 'upstream', 'backend', 'static', 'cache', 'auth', 'rate_limit', 'map'];
-
 export const VALID_CONNECTIONS: Record<NodeType, NodeType[]> = {
-  'server':   ALL,
-  'location': ALL,
-  'upstream': ALL,
-  'backend':  ALL,
-  'redirect': ALL,
-  'static':   ALL,
+  'server':     ['location', 'map'],
+  'location':   ['upstream', 'backend', 'static', 'cache', 'auth', 'rate_limit'],
+  'upstream':   ['backend'],
+  'backend':    [],
+  'static':     [],
+  'cache':      [],
+  'auth':       [],
+  'rate_limit': [],
+  'map':        [],
 };
 
 export interface GraphEdgeData {

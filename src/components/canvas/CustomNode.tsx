@@ -5,6 +5,7 @@ import type { NodeData, NodeType, ServerData, LocationData, UpstreamData, Backen
 import { NodeIcon } from './NodeIcon';
 import { NODE_COLORS } from '../../constants/colors';
 import { NODE_LABELS } from '../../constants/labels';
+import { VALID_CONNECTIONS } from '../../types/edges';
 import { useStore } from '../../store/useStore';
 
 interface CustomNodeProps { id: string; type: string; data: NodeData; selected: boolean; }
@@ -17,6 +18,11 @@ export const CustomNode = memo(function CustomNode({ id, type, data, selected }:
   const deleteMode = useStore((s) => s.deleteMode);
   const [hovered, setHovered] = useState(false);
 
+  const validTargets = VALID_CONNECTIONS[nodeType] || [];
+  const tooltip = validTargets.length > 0
+    ? `可连接：${validTargets.map((t) => NODE_LABELS[t] || t).join('、')}`
+    : '叶子节点，不可连接其他节点';
+
   const isDeleteTarget = deleteMode && hovered;
 
   return (
@@ -24,13 +30,14 @@ export const CustomNode = memo(function CustomNode({ id, type, data, selected }:
       onClick={() => setSelectedNode(id)}
       onMouseEnter={() => setHovered(true)}
       onMouseLeave={() => setHovered(false)}
+      title={tooltip}
       className={`${isDeleteTarget ? 'bg-red-50 dark:bg-red-950/50 border-red-400 dark:border-red-500' : `${colors.bg} ${colors.border}`} border-2 rounded-lg shadow-sm w-[180px] transition-all duration-150 ${selected ? 'ring-2 ring-blue-400 dark:ring-blue-500 ring-offset-1 dark:ring-offset-neutral-800 shadow-md' : ''} ${isDeleteTarget ? 'ring-2 ring-red-400 dark:ring-red-500 ring-offset-1 dark:ring-offset-neutral-800' : ''}`}
     >
       <div className={`${colors.badge} text-white px-2.5 py-1 rounded-t-md flex items-center gap-1.5 text-xs font-medium`}>
         <NodeIcon type={nodeType} size={13} />
         <span>{label}</span>
       </div>
-      <div className="px-2.5 pt-1 pb-2 leading-relaxed flex flex-col justify-center" style={{ minHeight: 60 }}>
+      <div className="px-2.5 py-1 leading-relaxed flex flex-col justify-center h-[56px]">
         {nodeType === 'server' ? (
           <>
             <p className="text-sm font-medium text-gray-800 dark:text-neutral-100 truncate">{(data as ServerData).serverName}</p>

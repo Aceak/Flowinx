@@ -65,16 +65,19 @@ export function DraggableItem({ type }: DraggableItemProps) {
     const t = e.changedTouches[0];
     const pos = screenToFlowPosition({ x: t.clientX, y: t.clientY });
     const existing = useStore.getState().nodes;
-    const NODE_W = 180, NODE_H = 84;
+    const NODE_W = 180, NODE_H = 90;
     let x = pos.x - NODE_W / 2, y = pos.y - NODE_H / 2;
     const overlaps = (nx: number, ny: number) => existing.some((n) =>
       Math.abs(n.position.x - nx) < NODE_W + 20 && Math.abs(n.position.y - ny) < NODE_H + 20);
     if (overlaps(x, y)) {
-      outer: for (let dy = 0; dy < 10; dy++) {
-        for (let dx = -5; dx <= 5; dx++) {
-          const nx = x + dx * (NODE_W + 40);
-          const ny = y + dy * (NODE_H + 30);
-          if (!overlaps(nx, ny)) { x = nx; y = ny; break outer; }
+      // 螺旋搜索，从近到远找空位
+      const stepX = NODE_W + 30, stepY = NODE_H + 20;
+      outer: for (let r = 1; r < 8; r++) {
+        for (let d = -r; d <= r; d++) {
+          if (!overlaps(x + d * stepX, y - r * stepY)) { x += d * stepX; y -= r * stepY; break outer; }
+          if (!overlaps(x + d * stepX, y + r * stepY)) { x += d * stepX; y += r * stepY; break outer; }
+          if (!overlaps(x - r * stepX, y + d * stepY)) { x -= r * stepX; y += d * stepY; break outer; }
+          if (!overlaps(x + r * stepX, y + d * stepY)) { x += r * stepX; y += d * stepY; break outer; }
         }
       }
     }
@@ -87,16 +90,18 @@ export function DraggableItem({ type }: DraggableItemProps) {
     if (touched.current) { touched.current = false; return; }
     const pos = screenToFlowPosition({ x: window.innerWidth / 2, y: window.innerHeight / 2 });
     const existing = useStore.getState().nodes;
-    const NODE_W = 180, NODE_H = 84;
+    const NODE_W = 180, NODE_H = 90;
     let x = pos.x - NODE_W / 2, y = pos.y - NODE_H / 2;
     const overlaps = (nx: number, ny: number) => existing.some((n) =>
       Math.abs(n.position.x - nx) < NODE_W + 20 && Math.abs(n.position.y - ny) < NODE_H + 20);
     if (overlaps(x, y)) {
-      outer: for (let dy = 0; dy < 10; dy++) {
-        for (let dx = -5; dx <= 5; dx++) {
-          const nx = x + dx * (NODE_W + 40);
-          const ny = y + dy * (NODE_H + 30);
-          if (!overlaps(nx, ny)) { x = nx; y = ny; break outer; }
+      const stepX = NODE_W + 30, stepY = NODE_H + 20;
+      outer: for (let r = 1; r < 8; r++) {
+        for (let d = -r; d <= r; d++) {
+          if (!overlaps(x + d * stepX, y - r * stepY)) { x += d * stepX; y -= r * stepY; break outer; }
+          if (!overlaps(x + d * stepX, y + r * stepY)) { x += d * stepX; y += r * stepY; break outer; }
+          if (!overlaps(x - r * stepX, y + d * stepY)) { x -= r * stepX; y += d * stepY; break outer; }
+          if (!overlaps(x + r * stepX, y + d * stepY)) { x += r * stepX; y += d * stepY; break outer; }
         }
       }
     }

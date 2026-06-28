@@ -2,7 +2,7 @@ import type { Node, Edge } from '@xyflow/react';
 import type { NodeData } from '../types/nodes';
 import type { GraphEdgeData } from '../types/edges';
 
-const NODE_W = 180, NODE_H = 84;
+const NODE_W = 180, NODE_H = 90;
 const V_GAP = 140, H_GAP = 40, TOP = 50;
 
 export function autoLayout(

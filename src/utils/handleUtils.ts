@@ -1,4 +1,4 @@
-const NODE_W = 180, NODE_H = 84;
+const NODE_W = 180, NODE_H = 90;
 
 export function getBestHandles(
   sourcePos: { x: number; y: number },
