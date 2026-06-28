@@ -4,7 +4,18 @@
     <meta charset="UTF-8" />
     <link rel="icon" type="image/png" href="Flowinx.png" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="color-scheme" content="light dark" />
     <title>Flowinx</title>
+    <script>
+      // 防止深色模式刷新闪烁（FOUC）
+      (function() {
+        try {
+          if (localStorage.getItem('flowinx-theme') === 'dark') {
+            document.documentElement.classList.add('dark');
+          }
+        } catch (e) { /* 受限存储环境，默认浅色模式 */ }
+      })();
+    </script>
   </head>
   <body>
     <div id="root"></div>

@@ -32,7 +32,7 @@ export function DraggableItem({ type }: DraggableItemProps) {
       <span className={`${colors.badge} text-white p-1 rounded`}>
         <NodeIcon type={type} size={14} />
       </span>
-      <span className="text-sm font-medium text-gray-700">{label}</span>
+      <span className="text-sm font-medium text-gray-700 dark:text-neutral-300">{label}</span>
     </div>
   );
 }
@@ -42,7 +42,7 @@ export function NodePalette() {
     <div className="flex flex-col gap-4">
       {NODE_CATEGORIES.map((cat) => (
         <div key={cat.key}>
-          <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2 px-1">
+          <h3 className="text-xs font-semibold text-gray-400 dark:text-neutral-500 uppercase tracking-wider mb-2 px-1">
             {cat.label}
           </h3>
           <div className="flex flex-col gap-2">

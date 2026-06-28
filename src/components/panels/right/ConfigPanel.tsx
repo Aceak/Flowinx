@@ -18,7 +18,7 @@ function renderForm(type: NodeType, data: NodeData, onChange: (d: Partial<NodeDa
     case 'backend':  return <BackendServerForm data={data as never} onChange={onChange as never} />;
     case 'redirect': return <RedirectForm data={data as never} onChange={onChange as never} />;
     case 'static':   return <StaticForm data={data as never} onChange={onChange as never} />;
-    default: return <p className="text-sm text-gray-500">未知节点类型</p>;
+    default: return <p className="text-sm text-gray-500 dark:text-neutral-400">未知节点类型</p>;
   }
 }
 
@@ -31,7 +31,7 @@ export function ConfigPanel() {
 
   if (!selectedNodeId) {
     return (
-      <div className="h-full flex items-center justify-center text-gray-400 text-sm p-4 text-center">
+      <div className="h-full flex items-center justify-center text-gray-400 dark:text-neutral-500 text-sm p-4 text-center">
         <div>
           <p className="text-lg mb-1">从左侧拖入节点</p>
           <p className="text-xs">然后在这里填写配置</p>
@@ -48,18 +48,18 @@ export function ConfigPanel() {
 
   return (
     <div className="h-full flex flex-col">
-      <div className="p-3 border-b border-gray-200 flex items-center justify-between bg-gray-50 shrink-0">
+      <div className="p-3 border-b border-gray-200 dark:border-neutral-700 flex items-center justify-between bg-gray-50 dark:bg-neutral-800 shrink-0">
         <div className="flex items-center gap-2">
           <NodeIcon type={nodeType} size={18} />
-          <h2 className="text-sm font-semibold text-gray-800">配置 {label}</h2>
+          <h2 className="text-sm font-semibold text-gray-800 dark:text-neutral-200">配置 {label}</h2>
         </div>
         <div className="flex items-center gap-1">
           <button onClick={() => removeNode(node.id)}
-            className="p-1.5 rounded hover:bg-red-50 text-gray-400 hover:text-red-500" title="删除">
+            className="p-1.5 rounded hover:bg-red-50 dark:hover:bg-red-900/20 text-gray-400 dark:text-neutral-500 hover:text-red-500 dark:hover:text-red-400" title="删除">
             <Trash2 size={16} />
           </button>
           <button onClick={() => setSelectedNode(null)}
-            className="p-1.5 rounded hover:bg-gray-100 text-gray-400" title="关闭">
+            className="p-1.5 rounded hover:bg-gray-100 dark:hover:bg-neutral-700 text-gray-400 dark:text-neutral-500 hover:text-gray-600 dark:hover:text-neutral-300" title="关闭">
             <X size={16} />
           </button>
         </div>

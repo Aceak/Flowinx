@@ -26,6 +26,9 @@ export interface AppState {
   clearCanvas: () => void;
   loadGraph: (nodes: Node<NodeData>[], edges: Edge<GraphEdgeData>[]) => void;
 
+  theme: 'light' | 'dark';
+  toggleTheme: () => void;
+
   generatedConfig: string | null;
   configErrors: ConfigError[];
   generateConfig: () => void;

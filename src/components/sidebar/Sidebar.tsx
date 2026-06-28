@@ -1,6 +1,7 @@
 import { useCallback } from 'react';
 import { useStore } from '../../store/useStore';
 import { NodePalette } from './DraggableItem';
+import { ThemeToggle } from '../theme/ThemeToggle';
 import { Trash2, Download, Play, FileJson, Upload } from 'lucide-react';
 import { templates } from '../../templates';
 
@@ -61,52 +62,55 @@ export function Sidebar() {
   };
 
   return (
-    <aside className="w-64 bg-gray-50 border-r border-gray-200 flex flex-col h-full overflow-hidden">
-      <div className="p-4 border-b border-gray-200">
-        <h1 className="text-lg font-bold text-gray-800 flex items-center gap-2">
-          <img src="Flowinx.png" alt="Flowinx" className="w-7 h-7" />
-          Flowinx
-        </h1>
+    <aside className="w-64 bg-gray-50 dark:bg-neutral-800 border-r border-gray-200 dark:border-neutral-700 flex flex-col h-full overflow-hidden">
+      <div className="p-4 border-b border-gray-200 dark:border-neutral-700">
+        <div className="flex items-center justify-between">
+          <h1 className="text-lg font-bold text-gray-800 dark:text-neutral-100 flex items-center gap-2">
+            <img src="Flowinx.png" alt="Flowinx" className="w-7 h-7" />
+            Flowinx
+          </h1>
+          <ThemeToggle />
+        </div>
       </div>
 
       <div className="flex-1 overflow-y-auto p-3">
         <NodePalette />
       </div>
 
-      <div className="p-3 border-t border-gray-200">
-        <h3 className="text-sm font-semibold text-gray-400 uppercase tracking-wider mb-2">预设模板</h3>
+      <div className="p-3 border-t border-gray-200 dark:border-neutral-700">
+        <h3 className="text-sm font-semibold text-gray-400 dark:text-neutral-500 uppercase tracking-wider mb-2">预设模板</h3>
         <div className="flex flex-col gap-1.5">
           {Object.entries(templates).map(([k, t]) => (
             <button key={k} onClick={() => handleLoadTemplate(k)}
-              className="text-left text-sm px-3 py-2 rounded bg-white border border-gray-200 hover:bg-blue-50 hover:border-blue-300 transition-colors">
+              className="text-left text-sm px-3 py-2 rounded bg-white dark:bg-neutral-800 border border-gray-200 dark:border-neutral-600 hover:bg-blue-50 dark:hover:bg-blue-900/30 hover:border-blue-300 dark:hover:border-blue-600 transition-colors text-gray-700 dark:text-neutral-300">
               {t.name}
             </button>
           ))}
         </div>
       </div>
 
-      <div className="p-3 border-t border-gray-200 flex flex-col gap-1.5">
+      <div className="p-3 border-t border-gray-200 dark:border-neutral-700 flex flex-col gap-1.5">
         <button onClick={handleGenerate} disabled={nodes.length === 0}
-          className="flex items-center justify-center gap-1.5 w-full px-3 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-40 disabled:cursor-not-allowed text-sm font-medium">
+          className="flex items-center justify-center gap-1.5 w-full px-3 py-2 bg-green-600 dark:bg-green-700 text-white rounded-lg hover:bg-green-700 dark:hover:bg-green-600 disabled:opacity-40 disabled:cursor-not-allowed text-sm font-medium">
           <Play size={15} />生成配置
         </button>
         <div className="flex gap-1.5">
           <button onClick={handleExport} disabled={nodes.length === 0}
-            className="flex-1 flex items-center justify-center gap-1 px-2 py-1.5 bg-white border border-gray-300 text-gray-700 rounded hover:bg-gray-100 disabled:opacity-40 text-xs">
+            className="flex-1 flex items-center justify-center gap-1 px-2 py-1.5 bg-white dark:bg-neutral-800 border border-gray-300 dark:border-neutral-600 text-gray-700 dark:text-neutral-300 rounded hover:bg-gray-100 dark:hover:bg-neutral-700 disabled:opacity-40 text-xs">
             <Upload size={13} />导出
           </button>
           <button onClick={handleImport}
-            className="flex-1 flex items-center justify-center gap-1 px-2 py-1.5 bg-white border border-gray-300 text-gray-700 rounded hover:bg-gray-100 text-xs">
+            className="flex-1 flex items-center justify-center gap-1 px-2 py-1.5 bg-white dark:bg-neutral-800 border border-gray-300 dark:border-neutral-600 text-gray-700 dark:text-neutral-300 rounded hover:bg-gray-100 dark:hover:bg-neutral-700 text-xs">
             <FileJson size={13} />导入
           </button>
         </div>
         <div className="flex gap-1.5">
           <button onClick={handleClear} disabled={nodes.length === 0}
-            className="flex-1 flex items-center justify-center gap-1 px-2 py-1.5 bg-white border border-red-300 text-red-600 rounded hover:bg-red-50 disabled:opacity-40 text-xs">
+            className="flex-1 flex items-center justify-center gap-1 px-2 py-1.5 bg-white dark:bg-neutral-800 border border-red-300 dark:border-red-700 text-red-600 dark:text-red-400 rounded hover:bg-red-50 dark:hover:bg-red-900/20 disabled:opacity-40 text-xs">
             <Trash2 size={13} />清空
           </button>
           <button onClick={handleDownload} disabled={!generatedConfig && nodes.length === 0}
-            className="flex-1 flex items-center justify-center gap-1 px-2 py-1.5 bg-blue-600 text-white rounded hover:bg-blue-700 disabled:opacity-40 text-xs">
+            className="flex-1 flex items-center justify-center gap-1 px-2 py-1.5 bg-blue-600 dark:bg-blue-700 text-white rounded hover:bg-blue-700 dark:hover:bg-blue-600 disabled:opacity-40 text-xs">
             <Download size={13} />下载 .conf
           </button>
         </div>

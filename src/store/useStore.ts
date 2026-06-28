@@ -13,9 +13,30 @@ import { generateId, generateEdgeId } from '../utils/idGenerator';
 import { generateConfig as generateNginxConfig } from '../engine/configGenerator';
 import { VALID_CONNECTIONS } from '../types/edges';
 
+function readPersistedTheme(): 'light' | 'dark' {
+  try {
+    const v = localStorage.getItem('flowinx-theme');
+    return v === 'dark' ? 'dark' : 'light';
+  } catch {
+    return 'light';
+  }
+}
+
+function persistTheme(theme: 'light' | 'dark') {
+  try { localStorage.setItem('flowinx-theme', theme); } catch { /* noop */ }
+}
+
 export const useStore = create<AppState>((set, get) => ({
   nodes: [],
   edges: [],
+
+  // 主题状态（localStorage 持久化）
+  theme: readPersistedTheme(),
+  toggleTheme: () => {
+    const next = get().theme === 'light' ? 'dark' : 'light';
+    persistTheme(next);
+    set({ theme: next });
+  },
 
   onNodesChange: (changes) => {
     set({ nodes: applyNodeChanges(changes, get().nodes as Node[]) as Node<NodeData>[] });
