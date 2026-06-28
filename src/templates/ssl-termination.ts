@@ -6,6 +6,6 @@ export const sslTermination = {
     { id: 'l1', type: 'location', position: { x: 250, y: 260 }, data: { label: '全部请求', path: '/', mode: 'proxy', proxyPass: 'http://127.0.0.1:8080', root: '', useIndex: false, index: 'index.html index.htm', xff: true, blockStatus: 403, allow: '', deny: '', extra: '' } },
   ],
   edges: [
-    { id: 'e1', source: 's1', target: 'l1', type: 'bezier', data: { label: '', order: 0 } },
+    { id: 'e1', source: 's1', target: 'l1', type: 'bezier', sourceHandle: 'bottom-source', targetHandle: 'top-target', data: { label: '', order: 0 } },
   ],
 };

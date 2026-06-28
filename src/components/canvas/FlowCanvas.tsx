@@ -3,14 +3,18 @@ import { ReactFlow, Background, MiniMap, BackgroundVariant, useReactFlow, type N
 import '@xyflow/react/dist/style.css';
 import { useStore } from '../../store/useStore';
 import { CustomNode } from './CustomNode';
+import { CustomEdge } from './CustomEdge';
 import type { NodeType } from '../../types/nodes';
+import type { GraphEdgeData } from '../../types/edges';
 import { VALID_CONNECTIONS } from '../../types/edges';
-import { Grid3x3, Minus, MousePointer2, Hand, ZoomIn, ZoomOut, Maximize } from 'lucide-react';
+import { Grid3x3, Minus, MousePointer2, Hand, Eraser, ZoomIn, ZoomOut, Maximize, Trash2 } from 'lucide-react';
 
 const nodeTypes = {
   server: CustomNode, location: CustomNode, upstream: CustomNode,
   backend: CustomNode, redirect: CustomNode, static: CustomNode,
 };
+
+const edgeTypes = { bezier: CustomEdge };
 
 const NODE_W = 180, NODE_H = 84;
 
@@ -18,11 +22,12 @@ function snap(n: number, g: number): number { return Math.round(n / g) * g; }
 
 export function FlowCanvas() {
   const reactFlowWrapper = useRef<HTMLDivElement>(null);
-  const { screenToFlowPosition, zoomIn, zoomOut, fitView } = useReactFlow();
-  const { nodes, edges, onNodesChange, onEdgesChange, onConnect, addNode, setSelectedNode } = useStore();
+  const { screenToFlowPosition, zoomIn, zoomOut, fitView, deleteElements } = useReactFlow();
+  const { nodes, edges, onNodesChange, onEdgesChange, onConnect, addNode, setSelectedNode, setSelectedEdge, selectedNodeId, selectedEdgeId, deleteMode, toggleDeleteMode, removeNode } = useStore();
   const theme = useStore((s) => s.theme);
   const [gridLines, setGridLines] = useState(false);
   const [panMode, setPanMode] = useState(true);
+  const [multiSelectedNodeIds, setMultiSelectedNodeIds] = useState<string[]>([]);
 
   const isDark = theme === 'dark';
 
@@ -34,6 +39,7 @@ export function FlowCanvas() {
     type: 'bezier' as const,
     animated: true,
     style: { stroke: edgeColor, strokeWidth: 2 },
+    interactionWidth: 20,
   }), [edgeColor]);
 
   const miniMapNodeColor = useCallback((n: { type?: string }) => {
@@ -60,10 +66,30 @@ export function FlowCanvas() {
   }, [addNode, screenToFlowPosition]);
 
   const onNodeClick = useCallback((_e: React.MouseEvent, node: { id: string }) => {
-    setSelectedNode(node.id);
-  }, [setSelectedNode]);
+    if (deleteMode) {
+      removeNode(node.id);
+    } else {
+      setSelectedNode(node.id);
+    }
+  }, [deleteMode, removeNode, setSelectedNode]);
 
-  const onPaneClick = useCallback(() => setSelectedNode(null), [setSelectedNode]);
+  const onEdgeClick = useCallback((_e: React.MouseEvent, edge: { id: string }) => {
+    if (deleteMode) {
+      useStore.getState().removeEdge(edge.id);
+    } else {
+      setSelectedEdge(edge.id);
+    }
+  }, [deleteMode, setSelectedEdge]);
+
+  const onPaneClick = useCallback(() => {
+    setSelectedNode(null);
+    setSelectedEdge(null);
+    setMultiSelectedNodeIds([]);
+  }, [setSelectedNode, setSelectedEdge]);
+
+  const onSelectionChange = useCallback(({ nodes: selected }: { nodes: { id: string }[] }) => {
+    setMultiSelectedNodeIds(selected.map((n) => n.id));
+  }, []);
 
   // 拖拽吸附：中心点在横/竖线上靠近时对齐，否则网格吸附
   const SNAP_DIST = 10;
@@ -103,17 +129,58 @@ export function FlowCanvas() {
     return (VALID_CONNECTIONS[src.type as NodeType] ?? []).includes(tgt.type as NodeType);
   }, [nodes]);
 
+  const enterSelectMode = useCallback(() => {
+    if (deleteMode) toggleDeleteMode();
+    setPanMode(false);
+  }, [deleteMode, toggleDeleteMode]);
+
+  const enterPanMode = useCallback(() => {
+    if (deleteMode) toggleDeleteMode();
+    setPanMode(true);
+  }, [deleteMode, toggleDeleteMode]);
+
+  const deleteSelected = useCallback(() => {
+    const state = useStore.getState();
+    const nodesToDelete: { id: string }[] = [];
+    const edgesToDelete: { id: string }[] = [];
+
+    // 框选多节点
+    for (const id of multiSelectedNodeIds) {
+      nodesToDelete.push({ id });
+    }
+    // 单击选中节点（去重）
+    if (state.selectedNodeId && !multiSelectedNodeIds.includes(state.selectedNodeId)) {
+      nodesToDelete.push({ id: state.selectedNodeId });
+    }
+    // 单击选中连线
+    if (state.selectedEdgeId) {
+      edgesToDelete.push({ id: state.selectedEdgeId });
+    }
+
+    if (nodesToDelete.length > 0 || edgesToDelete.length > 0) {
+      deleteElements({ nodes: nodesToDelete, edges: edgesToDelete });
+    }
+  }, [multiSelectedNodeIds, deleteElements]);
+
+  const hasSelection = multiSelectedNodeIds.length > 0 || !!selectedNodeId || !!selectedEdgeId;
+
+  const edgesWithSelection = useMemo(() =>
+    edges.map((e) => ({ ...e, selected: e.id === selectedEdgeId })),
+  [edges, selectedEdgeId]);
+
   return (
-    <div ref={reactFlowWrapper} className="flex-1 h-full relative bg-gray-50 dark:bg-neutral-950" onDrop={onDrop} onDragOver={onDragOver}>
+    <div ref={reactFlowWrapper} className={`flex-1 h-full relative bg-gray-50 dark:bg-neutral-950 ${deleteMode ? 'cursor-pointer' : ''}`} onDrop={onDrop} onDragOver={onDragOver}>
       <ReactFlow
-        nodes={nodes} edges={edges}
+        nodes={nodes} edges={edgesWithSelection}
         onNodesChange={onNodesChange} onEdgesChange={onEdgesChange} onConnect={onConnect}
-        onNodeClick={onNodeClick} onPaneClick={onPaneClick} onNodeDrag={onNodeDrag} onNodeDragStop={onNodeDragStop}
-        isValidConnection={isValidConnection} nodeTypes={nodeTypes}
+        onNodeClick={onNodeClick} onEdgeClick={onEdgeClick} onPaneClick={onPaneClick}
+        onSelectionChange={onSelectionChange}
+        onNodeDrag={onNodeDrag} onNodeDragStop={onNodeDragStop}
+        isValidConnection={isValidConnection} nodeTypes={nodeTypes} edgeTypes={edgeTypes}
         fitView deleteKeyCode={['Backspace', 'Delete']}
         connectionMode="loose"
         panOnDrag={panMode}
-        selectionOnDrag={!panMode}
+        selectionOnDrag={!panMode && !deleteMode}
         panActivationKeyCode="Space"
         multiSelectionKeyCode="Shift"
         defaultEdgeOptions={defaultEdgeOptions}
@@ -138,15 +205,21 @@ export function FlowCanvas() {
           {gridLines ? <Grid3x3 size={16} /> : <Minus size={16} />}
         </button>
         <div className="w-px bg-gray-200 dark:bg-neutral-700 my-1" />
-        <button onClick={() => setPanMode(false)}
-          title="框选多个节点"
-          className={`p-2 border rounded-lg shadow-sm transition-colors ${!panMode ? 'bg-blue-50 dark:bg-blue-900/30 border-blue-300 dark:border-blue-600 text-blue-600 dark:text-blue-400' : 'bg-white dark:bg-neutral-800 border-gray-200 dark:border-neutral-700 hover:bg-gray-50 dark:hover:bg-neutral-700 text-gray-500 dark:text-neutral-400'}`}>
+        {/* 模式切换：箭头(选择) / 手(拖拽) / 橡皮擦(删除) 三选一 */}
+        <button onClick={enterSelectMode}
+          title="选择模式"
+          className={`p-2 border rounded-lg shadow-sm transition-colors ${!panMode && !deleteMode ? 'bg-blue-50 dark:bg-blue-900/30 border-blue-300 dark:border-blue-600 text-blue-600 dark:text-blue-400' : 'bg-white dark:bg-neutral-800 border-gray-200 dark:border-neutral-700 hover:bg-gray-50 dark:hover:bg-neutral-700 text-gray-500 dark:text-neutral-400'}`}>
           <MousePointer2 size={16} />
         </button>
-        <button onClick={() => setPanMode(true)}
-          title="拖动画布"
-          className={`p-2 border rounded-lg shadow-sm transition-colors ${panMode ? 'bg-blue-50 dark:bg-blue-900/30 border-blue-300 dark:border-blue-600 text-blue-600 dark:text-blue-400' : 'bg-white dark:bg-neutral-800 border-gray-200 dark:border-neutral-700 hover:bg-gray-50 dark:hover:bg-neutral-700 text-gray-500 dark:text-neutral-400'}`}>
+        <button onClick={enterPanMode}
+          title="拖拽模式"
+          className={`p-2 border rounded-lg shadow-sm transition-colors ${panMode && !deleteMode ? 'bg-blue-50 dark:bg-blue-900/30 border-blue-300 dark:border-blue-600 text-blue-600 dark:text-blue-400' : 'bg-white dark:bg-neutral-800 border-gray-200 dark:border-neutral-700 hover:bg-gray-50 dark:hover:bg-neutral-700 text-gray-500 dark:text-neutral-400'}`}>
           <Hand size={16} />
+        </button>
+        <button onClick={toggleDeleteMode}
+          title="删除模式"
+          className={`p-2 border rounded-lg shadow-sm transition-colors ${deleteMode ? 'bg-red-50 dark:bg-red-900/30 border-red-300 dark:border-red-600 text-red-600 dark:text-red-400' : 'bg-white dark:bg-neutral-800 border-gray-200 dark:border-neutral-700 hover:bg-gray-50 dark:hover:bg-neutral-700 text-gray-500 dark:text-neutral-400'}`}>
+          <Eraser size={16} />
         </button>
         <div className="w-px bg-gray-200 dark:bg-neutral-700 my-1" />
         <button onClick={() => zoomIn()} title="放大"
@@ -161,6 +234,17 @@ export function FlowCanvas() {
           className="p-2 bg-white dark:bg-neutral-800 border border-gray-200 dark:border-neutral-700 rounded-lg shadow-sm hover:bg-gray-50 dark:hover:bg-neutral-700 text-gray-500 dark:text-neutral-400 transition-colors">
           <Maximize size={16} />
         </button>
+        {/* 动态工具区域 — 选中任意节点或连线后才出现垃圾桶 */}
+        {hasSelection && (
+          <>
+            <div className="w-px bg-gray-200 dark:bg-neutral-700 my-1" />
+            <button onClick={deleteSelected}
+              title="删除选中项"
+              className="p-2 bg-white dark:bg-neutral-800 border border-red-200 dark:border-red-800 rounded-lg shadow-sm hover:bg-red-50 dark:hover:bg-red-900/30 text-red-500 dark:text-red-400 transition-colors">
+              <Trash2 size={16} />
+            </button>
+          </>
+        )}
       </div>
     </div>
   );

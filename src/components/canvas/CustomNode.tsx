@@ -1,4 +1,4 @@
-import { memo } from 'react';
+import { memo, useState } from 'react';
 import { Handle, Position } from '@xyflow/react';
 import { Lock, CircleCheck, Ban } from 'lucide-react';
 import type { NodeData, NodeType, ServerData, LocationData, UpstreamData, BackendData, RedirectData, StaticData } from '../../types/nodes';
@@ -14,11 +14,17 @@ export const CustomNode = memo(function CustomNode({ id, type, data, selected }:
   const colors = NODE_COLORS[nodeType] ?? NODE_COLORS['server'];
   const label = (data as { label: string }).label || NODE_LABELS[nodeType] || '';
   const setSelectedNode = useStore((s) => s.setSelectedNode);
+  const deleteMode = useStore((s) => s.deleteMode);
+  const [hovered, setHovered] = useState(false);
+
+  const isDeleteTarget = deleteMode && hovered;
 
   return (
     <div
       onClick={() => setSelectedNode(id)}
-      className={`${colors.bg} ${colors.border} border-2 rounded-lg shadow-sm w-[180px] transition-all duration-200 cursor-pointer ${selected ? 'ring-2 ring-blue-400 dark:ring-blue-500 ring-offset-1 dark:ring-offset-neutral-800 shadow-md' : ''}`}
+      onMouseEnter={() => setHovered(true)}
+      onMouseLeave={() => setHovered(false)}
+      className={`${isDeleteTarget ? 'bg-red-50 dark:bg-red-950/50 border-red-400 dark:border-red-500' : `${colors.bg} ${colors.border}`} border-2 rounded-lg shadow-sm w-[180px] transition-all duration-150 ${selected ? 'ring-2 ring-blue-400 dark:ring-blue-500 ring-offset-1 dark:ring-offset-neutral-800 shadow-md' : ''} ${isDeleteTarget ? 'ring-2 ring-red-400 dark:ring-red-500 ring-offset-1 dark:ring-offset-neutral-800' : ''}`}
     >
       <div className={`${colors.badge} text-white px-2.5 py-1 rounded-t-md flex items-center gap-1.5 text-xs font-medium`}>
         <NodeIcon type={nodeType} size={13} />
@@ -96,11 +102,15 @@ export const CustomNode = memo(function CustomNode({ id, type, data, selected }:
           <p className="text-xs text-gray-500 dark:text-neutral-400">未知类型</p>
         )}
       </div>
-      {/* 每边一个连接点(source)，连线拖到目标节点任意位置即可完成接入 */}
-      <Handle type="source" position={Position.Top} id="top" className="!w-2.5 !h-2.5 !bg-gray-400 dark:!bg-neutral-500 !border-2 !border-white dark:!border-neutral-800" />
-      <Handle type="source" position={Position.Bottom} id="bottom" className="!w-2.5 !h-2.5 !bg-gray-400 dark:!bg-neutral-500 !border-2 !border-white dark:!border-neutral-800" />
-      <Handle type="source" position={Position.Left} id="left" className="!w-2.5 !h-2.5 !bg-gray-400 dark:!bg-neutral-500 !border-2 !border-white dark:!border-neutral-800" />
-      <Handle type="source" position={Position.Right} id="right" className="!w-2.5 !h-2.5 !bg-gray-400 dark:!bg-neutral-500 !border-2 !border-white dark:!border-neutral-800" />
+      {/* 每边 target + source 完全重叠（target 在下用于边路径计算，source 在上用于拖拽连线），视觉上每个边只有一个点 */}
+      <Handle type="target" position={Position.Top} id="top-target" className="!w-2.5 !h-2.5 !bg-gray-400 dark:!bg-neutral-500 !border-2 !border-white dark:!border-neutral-800" />
+      <Handle type="source" position={Position.Top} id="top-source" className="!w-2.5 !h-2.5 !bg-gray-400 dark:!bg-neutral-500 !border-2 !border-white dark:!border-neutral-800" />
+      <Handle type="target" position={Position.Bottom} id="bottom-target" className="!w-2.5 !h-2.5 !bg-gray-400 dark:!bg-neutral-500 !border-2 !border-white dark:!border-neutral-800" />
+      <Handle type="source" position={Position.Bottom} id="bottom-source" className="!w-2.5 !h-2.5 !bg-gray-400 dark:!bg-neutral-500 !border-2 !border-white dark:!border-neutral-800" />
+      <Handle type="target" position={Position.Left} id="left-target" className="!w-2.5 !h-2.5 !bg-gray-400 dark:!bg-neutral-500 !border-2 !border-white dark:!border-neutral-800" />
+      <Handle type="source" position={Position.Left} id="left-source" className="!w-2.5 !h-2.5 !bg-gray-400 dark:!bg-neutral-500 !border-2 !border-white dark:!border-neutral-800" />
+      <Handle type="target" position={Position.Right} id="right-target" className="!w-2.5 !h-2.5 !bg-gray-400 dark:!bg-neutral-500 !border-2 !border-white dark:!border-neutral-800" />
+      <Handle type="source" position={Position.Right} id="right-source" className="!w-2.5 !h-2.5 !bg-gray-400 dark:!bg-neutral-500 !border-2 !border-white dark:!border-neutral-800" />
     </div>
   );
 });

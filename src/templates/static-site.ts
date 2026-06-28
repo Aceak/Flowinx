@@ -6,6 +6,6 @@ export const staticSite = {
     { id: 'l1', type: 'location', position: { x: 250, y: 220 }, data: { label: '首页', path: '/', mode: 'static', proxyPass: '', root: '', useIndex: false, index: 'index.html', xff: false, blockStatus: 403, allow: '', deny: '', extra: 'try_files $uri $uri/ /index.html;' } },
   ],
   edges: [
-    { id: 'e1', source: 's1', target: 'l1', type: 'bezier', data: { label: '', order: 0 } },
+    { id: 'e1', source: 's1', target: 'l1', type: 'bezier', sourceHandle: 'bottom-source', targetHandle: 'top-target', data: { label: '', order: 0 } },
   ],
 };

@@ -10,6 +10,7 @@ import type { GraphEdgeData } from '../types/edges';
 import type { AppState } from '../types/store';
 import { NODE_DEFAULTS } from '../constants/nodeDefaults';
 import { generateId, generateEdgeId } from '../utils/idGenerator';
+import { getBestHandles } from '../utils/handleUtils';
 import { generateConfig as generateNginxConfig } from '../engine/configGenerator';
 import { VALID_CONNECTIONS } from '../types/edges';
 
@@ -30,6 +31,9 @@ export const useStore = create<AppState>((set, get) => ({
   nodes: [],
   edges: [],
 
+  deleteMode: false,
+  toggleDeleteMode: () => set({ deleteMode: !get().deleteMode }),
+
   // 主题状态（localStorage 持久化）
   theme: readPersistedTheme(),
   toggleTheme: () => {
@@ -43,7 +47,9 @@ export const useStore = create<AppState>((set, get) => ({
   },
 
   onEdgesChange: (changes) => {
-    set({ edges: applyEdgeChanges(changes, get().edges as Edge[]) as Edge<GraphEdgeData>[] });
+    const next = applyEdgeChanges(changes, get().edges as Edge[]) as Edge<GraphEdgeData>[];
+    const sid = get().selectedEdgeId;
+    set({ edges: next, selectedEdgeId: sid && next.some((e) => e.id === sid) ? sid : null });
   },
 
   onConnect: (connection) => {
@@ -61,17 +67,24 @@ export const useStore = create<AppState>((set, get) => ({
     );
     if (exists) return;
 
+    // 用户手动拖了哪个把手就尊重用户选择，没指定（loose 模式）才自动计算
+    const handles = getBestHandles(sourceNode.position, targetNode.position);
+
     const newEdge: Edge<GraphEdgeData> = {
       ...connection,
       id: generateEdgeId(),
       type: 'bezier',
+      sourceHandle: connection.sourceHandle || handles.sourceHandle,
+      targetHandle: connection.targetHandle || handles.targetHandle,
       data: { label: '', order: 0 },
     };
     set({ edges: [...get().edges, newEdge] });
   },
 
   selectedNodeId: null,
-  setSelectedNode: (id) => set({ selectedNodeId: id }),
+  selectedEdgeId: null,
+  setSelectedNode: (id) => set({ selectedNodeId: id, selectedEdgeId: null }),
+  setSelectedEdge: (id) => set({ selectedEdgeId: id, selectedNodeId: null }),
 
   addNode: (type, position) => {
     const defaults = NODE_DEFAULTS[type] ?? {};
@@ -88,10 +101,13 @@ export const useStore = create<AppState>((set, get) => ({
   },
 
   removeNode: (id) => {
+    const nextEdges = get().edges.filter((e) => e.source !== id && e.target !== id);
+    const sid = get().selectedEdgeId;
     set({
       nodes: get().nodes.filter((n) => n.id !== id),
-      edges: get().edges.filter((e) => e.source !== id && e.target !== id),
+      edges: nextEdges,
       selectedNodeId: get().selectedNodeId === id ? null : get().selectedNodeId,
+      selectedEdgeId: sid && nextEdges.some((e) => e.id === sid) ? sid : null,
     });
   },
 
@@ -108,11 +124,11 @@ export const useStore = create<AppState>((set, get) => ({
   },
 
   clearCanvas: () => {
-    set({ nodes: [], edges: [], selectedNodeId: null, generatedConfig: null, configErrors: [] });
+    set({ nodes: [], edges: [], selectedNodeId: null, selectedEdgeId: null, generatedConfig: null, configErrors: [] });
   },
 
   loadGraph: (nodes, edges) => {
-    set({ nodes, edges, selectedNodeId: null, generatedConfig: null, configErrors: [] });
+    set({ nodes, edges, selectedNodeId: null, selectedEdgeId: null, generatedConfig: null, configErrors: [] });
   },
 
   generatedConfig: null,

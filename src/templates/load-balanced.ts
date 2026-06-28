@@ -9,9 +9,9 @@ export const loadBalanced = {
     { id: 'b2', type: 'backend', position: { x: 350, y: 540 }, data: { label: '服务器 2', address: '10.0.0.2:3000', weight: 1, maxFails: 3, failTimeout: 30, backup: false } },
   ],
   edges: [
-    { id: 'e1', source: 's1', target: 'l1', type: 'bezier', data: { label: '', order: 0 } },
-    { id: 'e2', source: 'l1', target: 'u1', type: 'bezier', data: { label: '', order: 0 } },
-    { id: 'e3', source: 'u1', target: 'b1', type: 'bezier', data: { label: '', order: 0 } },
-    { id: 'e4', source: 'u1', target: 'b2', type: 'bezier', data: { label: '', order: 0 } },
+    { id: 'e1', source: 's1', target: 'l1', type: 'bezier', sourceHandle: 'bottom-source', targetHandle: 'top-target', data: { label: '', order: 0 } },
+    { id: 'e2', source: 'l1', target: 'u1', type: 'bezier', sourceHandle: 'bottom-source', targetHandle: 'top-target', data: { label: '', order: 0 } },
+    { id: 'e3', source: 'u1', target: 'b1', type: 'bezier', sourceHandle: 'bottom-source', targetHandle: 'top-target', data: { label: '', order: 0 } },
+    { id: 'e4', source: 'u1', target: 'b2', type: 'bezier', sourceHandle: 'bottom-source', targetHandle: 'top-target', data: { label: '', order: 0 } },
   ],
 };

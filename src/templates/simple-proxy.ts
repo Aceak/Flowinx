@@ -7,7 +7,7 @@ export const simpleProxy = {
     { id: 'l2', type: 'location', position: { x: 250, y: 380 }, data: { label: '静态首页', path: '/', mode: 'static', proxyPass: '', root: '', useIndex: false, index: 'index.html index.htm', xff: false, blockStatus: 403, allow: '', deny: '', extra: '' } },
   ],
   edges: [
-    { id: 'e1', source: 's1', target: 'l1', type: 'bezier', data: { label: '', order: 0 } },
-    { id: 'e2', source: 's1', target: 'l2', type: 'bezier', data: { label: '', order: 0 } },
+    { id: 'e1', source: 's1', target: 'l1', type: 'bezier', sourceHandle: 'bottom-source', targetHandle: 'top-target', data: { label: '', order: 0 } },
+    { id: 'e2', source: 's1', target: 'l2', type: 'bezier', sourceHandle: 'bottom-source', targetHandle: 'top-target', data: { label: '', order: 0 } },
   ],
 };

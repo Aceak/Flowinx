@@ -16,7 +16,9 @@ export interface AppState {
   onConnect: OnConnect;
 
   selectedNodeId: string | null;
+  selectedEdgeId: string | null;
   setSelectedNode: (id: string | null) => void;
+  setSelectedEdge: (id: string | null) => void;
 
   addNode: (type: NodeType, position: { x: number; y: number }) => void;
   removeNode: (id: string) => void;
@@ -25,6 +27,9 @@ export interface AppState {
 
   clearCanvas: () => void;
   loadGraph: (nodes: Node<NodeData>[], edges: Edge<GraphEdgeData>[]) => void;
+
+  deleteMode: boolean;
+  toggleDeleteMode: () => void;
 
   theme: 'light' | 'dark';
   toggleTheme: () => void;
