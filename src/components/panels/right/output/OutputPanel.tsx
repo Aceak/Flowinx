@@ -1,8 +1,9 @@
-import { useCallback, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useStore } from '../../../../store/useStore';
 import CodeMirror from '@uiw/react-codemirror';
 import { nginxLanguage } from '../../../../utils/nginxLang';
-import { Copy, Download, AlertTriangle, CheckCircle2, FileText } from 'lucide-react';
+import { configToGraph } from '../../../../utils/nginxParser';
+import { Copy, AlertTriangle, CheckCircle2, FileText, Loader2 } from 'lucide-react';
 
 export function OutputPanel() {
   const { generatedConfig, configErrors, generateConfig, nodes } = useStore();
@@ -11,6 +12,8 @@ export function OutputPanel() {
   const theme = useStore((s) => s.theme);
   const [editedConfig, setEditedConfig] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
+  const [syncing, setSyncing] = useState(false);
+  const lastSynced = useRef<string | null>(null);
 
   const displayConfig = editedConfig ?? generatedConfig;
 
@@ -37,19 +40,28 @@ export function OutputPanel() {
 
   const allErrors = [...configErrors.map((e) => e.message), ...syntaxErrors];
 
+  // 双向同步：配置无错误且用户编辑过 → 解析回画布
+  useEffect(() => {
+    if (!editedConfig || allErrors.length > 0) { setSyncing(false); return; }
+    if (editedConfig === lastSynced.current) { setSyncing(false); return; }
+    setSyncing(true);
+    const timer = setTimeout(() => {
+      try {
+        if (allErrors.length > 0) { setSyncing(false); return; }
+        const { nodes, edges } = configToGraph(editedConfig);
+        lastSynced.current = editedConfig;
+        useStore.getState().loadGraph(nodes, edges);
+        useStore.getState().generateConfig();
+      } catch { /* 解析失败 */ }
+      setSyncing(false);
+    }, 800);
+    return () => clearTimeout(timer);
+  }, [editedConfig, allErrors.length]);
+
   const handleCopy = useCallback(async () => {
     if (!displayConfig) return;
     try { await navigator.clipboard.writeText(displayConfig); setCopied(true); setTimeout(() => setCopied(false), 2000); } catch { /* fallback */ }
   }, [displayConfig]);
-
-  const handleDownload = useCallback(() => {
-    if (!displayConfig) return;
-    const blob = new Blob([displayConfig], { type: 'text/plain' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a'); a.href = url;
-    a.download = configMode === 'main' ? 'nginx.conf' : 'site.conf';
-    a.click(); URL.revokeObjectURL(url);
-  }, [displayConfig, configMode]);
 
   if (!displayConfig) {
     return (
@@ -82,10 +94,6 @@ export function OutputPanel() {
             className="flex items-center gap-1 px-2 py-1 text-xs bg-white dark:bg-neutral-800 border border-gray-300 dark:border-neutral-600 rounded hover:bg-gray-100 dark:hover:bg-neutral-700 text-gray-700 dark:text-neutral-300">
             <Copy size={13} />{copied ? '已复制' : '复制'}
           </button>
-          <button onClick={handleDownload}
-            className="flex items-center gap-1 px-2 py-1 text-xs bg-blue-600 dark:bg-blue-700 text-white rounded hover:bg-blue-700 dark:hover:bg-blue-600">
-            <Download size={13} />下载
-          </button>
         </div>
       </div>
 
@@ -102,7 +110,11 @@ export function OutputPanel() {
 
       {/* 状态栏 */}
       <div className={`shrink-0 border-t px-3 py-2 text-xs overflow-y-auto max-h-32 ${allErrors.length > 0 ? 'border-red-200 dark:border-red-800 bg-red-50 dark:bg-red-950/30 text-red-700 dark:text-red-400' : 'border-gray-200 dark:border-neutral-700 text-green-600 dark:text-green-400'}`}>
-        {allErrors.length > 0 ? (
+        {syncing ? (
+          <div className="flex items-center gap-1.5 text-blue-600 dark:text-blue-400">
+            <Loader2 size={11} className="animate-spin" />同步中…
+          </div>
+        ) : allErrors.length > 0 ? (
           <div className="flex flex-col gap-0.5">
             {allErrors.map((msg, i) => (
               <div key={i} className="flex items-center gap-1"><AlertTriangle size={11} />{msg}</div>

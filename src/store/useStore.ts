@@ -11,6 +11,7 @@ import type { AppState } from '../types/store';
 import { NODE_DEFAULTS } from '../constants/nodeDefaults';
 import { generateId, generateEdgeId } from '../utils/idGenerator';
 import { getBestHandles } from '../utils/handleUtils';
+import { autoLayout } from '../utils/layoutGraph';
 import { generateConfig as generateNginxConfig } from '../engine/configGenerator';
 import { VALID_CONNECTIONS } from '../types/edges';
 
@@ -137,7 +138,8 @@ export const useStore = create<AppState>((set, get) => ({
   },
 
   loadGraph: (nodes, edges) => {
-    set({ nodes, edges, selectedNodeId: null, selectedEdgeId: null, generatedConfig: null, configErrors: [] });
+    const laidOut = autoLayout(nodes, edges);
+    set({ nodes: laidOut, edges, selectedNodeId: null, selectedEdgeId: null, generatedConfig: null, configErrors: [] });
   },
 
   generatedConfig: null,

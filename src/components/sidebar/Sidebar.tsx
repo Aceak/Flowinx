@@ -2,7 +2,8 @@ import { useCallback, useState } from 'react';
 import { useStore } from '../../store/useStore';
 import { NodePalette } from './DraggableItem';
 import { ThemeToggle } from '../theme/ThemeToggle';
-import { Trash2, Download, Play, FileJson, Upload, Menu, X } from 'lucide-react';
+import { Trash2, Play, FileUp, FileDown, Menu, X } from 'lucide-react';
+import { configToGraph } from '../../utils/nginxParser';
 import { templates } from '../../templates';
 
 export function Sidebar() {
@@ -22,17 +23,6 @@ export function Sidebar() {
     setPanelCollapsed(false);
   };
 
-  const handleDownload = useCallback(() => {
-    const state = useStore.getState();
-    if (!state.generatedConfig) state.generateConfig();
-    const config = useStore.getState().generatedConfig;
-    if (!config) return;
-    const blob = new Blob([config], { type: 'text/plain' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a'); a.href = url; a.download = 'nginx.conf'; a.click();
-    URL.revokeObjectURL(url);
-  }, []);
-
   const handleLoadTemplate = (key: string) => {
     const t = templates[key];
     if (!t) return;
@@ -40,28 +30,36 @@ export function Sidebar() {
     loadGraph(t.nodes as never, t.edges as never);
   };
 
+  // 导出为 nginx 配置文件
   const handleExport = () => {
-    const s = useStore.getState();
-    const blob = new Blob([JSON.stringify({ nodes: s.nodes, edges: s.edges }, null, 2)], { type: 'application/json' });
+    const state = useStore.getState();
+    if (!state.generatedConfig) { state.generateConfig(); }
+    const config = useStore.getState().generatedConfig;
+    if (!config) return;
+    const blob = new Blob([config], { type: 'text/plain' });
     const url = URL.createObjectURL(blob);
-    const a = document.createElement('a'); a.href = url; a.download = 'nginx-architecture.json'; a.click();
+    const a = document.createElement('a'); a.href = url;
+    a.download = state.configMode === 'main' ? 'nginx.conf' : 'site.conf';
+    a.click();
     URL.revokeObjectURL(url);
   };
 
+  // 导入 nginx .conf 文件并解析为架构图
   const handleImport = () => {
-    const input = document.createElement('input'); input.type = 'file'; input.accept = '.json';
+    const input = document.createElement('input'); input.type = 'file'; input.accept = '.conf,.txt';
     input.onchange = (e) => {
       const file = (e.target as HTMLInputElement).files?.[0];
       if (!file) return;
       const r = new FileReader();
       r.onload = () => {
         try {
-          const d = JSON.parse(r.result as string);
-          if (d.nodes && d.edges) {
-            if (useStore.getState().nodes.length > 0 && !confirm('导入会替换当前内容，继续？')) return;
-            loadGraph(d.nodes, d.edges);
-          }
-        } catch { alert('无效的 JSON 文件'); }
+          const text = r.result as string;
+          const { nodes, edges } = configToGraph(text);
+          if (nodes.length === 0) { alert('未能从配置文件中解析出有效结构'); return; }
+          if (useStore.getState().nodes.length > 0 && !confirm('导入会替换当前内容，继续？')) return;
+          loadGraph(nodes as never, edges as never);
+          useStore.getState().generateConfig();
+        } catch { alert('无效的 nginx 配置文件'); }
       };
       r.readAsText(file);
     };
@@ -105,28 +103,22 @@ export function Sidebar() {
       <div className="p-3 border-t border-gray-200 dark:border-neutral-700 flex flex-col gap-1.5">
         <button onClick={handleGenerate} disabled={nodes.length === 0}
           className="flex items-center justify-center gap-1.5 w-full px-3 py-2 bg-green-600 dark:bg-green-700 text-white rounded-lg hover:bg-green-700 dark:hover:bg-green-600 disabled:opacity-40 disabled:cursor-not-allowed text-sm font-medium">
-          <Play size={15} /><span className="hidden sm:inline">生成配置</span>
+          <Play size={15} />查看配置
         </button>
         <div className="flex gap-1.5">
           <button onClick={handleExport} disabled={nodes.length === 0}
             className="flex-1 flex items-center justify-center gap-1 px-2 py-1.5 bg-white dark:bg-neutral-800 border border-gray-300 dark:border-neutral-600 text-gray-700 dark:text-neutral-300 rounded hover:bg-gray-100 dark:hover:bg-neutral-700 disabled:opacity-40 text-xs">
-            <Upload size={13} /><span className="hidden sm:inline">导出</span>
+            <FileUp size={13} />导出配置
           </button>
           <button onClick={handleImport}
             className="flex-1 flex items-center justify-center gap-1 px-2 py-1.5 bg-white dark:bg-neutral-800 border border-gray-300 dark:border-neutral-600 text-gray-700 dark:text-neutral-300 rounded hover:bg-gray-100 dark:hover:bg-neutral-700 text-xs">
-            <FileJson size={13} /><span className="hidden sm:inline">导入</span>
+            <FileDown size={13} />导入配置
           </button>
         </div>
-        <div className="flex gap-1.5">
-          <button onClick={handleClear} disabled={nodes.length === 0}
-            className="flex-1 flex items-center justify-center gap-1 px-2 py-1.5 bg-white dark:bg-neutral-800 border border-red-300 dark:border-red-700 text-red-600 dark:text-red-400 rounded hover:bg-red-50 dark:hover:bg-red-900/20 disabled:opacity-40 text-xs">
-            <Trash2 size={13} /><span className="hidden sm:inline">清空</span>
-          </button>
-          <button onClick={handleDownload} disabled={!generatedConfig && nodes.length === 0}
-            className="flex-1 flex items-center justify-center gap-1 px-2 py-1.5 bg-blue-600 dark:bg-blue-700 text-white rounded hover:bg-blue-700 dark:hover:bg-blue-600 disabled:opacity-40 text-xs">
-            <Download size={13} /><span className="hidden sm:inline">下载</span>
-          </button>
-        </div>
+        <button onClick={handleClear} disabled={nodes.length === 0}
+          className="flex items-center justify-center gap-1.5 w-full px-3 py-2 bg-white dark:bg-neutral-800 border border-red-300 dark:border-red-700 text-red-600 dark:text-red-400 rounded hover:bg-red-50 dark:hover:bg-red-900/20 disabled:opacity-40 text-sm">
+          <Trash2 size={14} />清空画布
+        </button>
       </div>
     </div>
   );
