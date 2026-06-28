@@ -31,9 +31,9 @@ export const CustomNode = memo(function CustomNode({ id, type, data, selected }:
       onMouseEnter={() => setHovered(true)}
       onMouseLeave={() => setHovered(false)}
       title={tooltip}
-      className={`${isDeleteTarget ? 'bg-red-50 dark:bg-red-950/50 border-red-400 dark:border-red-500' : `${colors.bg} ${colors.border}`} border-2 rounded-lg shadow-sm w-[180px] transition-all duration-150 ${selected ? 'ring-2 ring-blue-400 dark:ring-blue-500 ring-offset-1 dark:ring-offset-neutral-800 shadow-md' : ''} ${isDeleteTarget ? 'ring-2 ring-red-400 dark:ring-red-500 ring-offset-1 dark:ring-offset-neutral-800' : ''}`}
+      className={`${isDeleteTarget ? 'bg-red-50 dark:bg-red-950/50 border-red-400 dark:border-red-500' : `${colors.bg} ${colors.border}`} border-[3px] rounded-lg shadow-sm w-[180px] transition-all duration-150 ${selected ? 'ring-2 ring-blue-400 dark:ring-blue-500 ring-offset-1 dark:ring-offset-neutral-800 shadow-md' : ''} ${isDeleteTarget ? 'ring-2 ring-red-400 dark:ring-red-500 ring-offset-1 dark:ring-offset-neutral-800' : ''}`}
     >
-      <div className={`${colors.badge} text-white px-2.5 py-1 rounded-t-md flex items-center gap-1.5 text-xs font-medium`}>
+      <div className={`${colors.badge} text-white px-2.5 py-1 flex items-center gap-1.5 text-xs font-medium -mx-[3px] -mt-[3px] rounded-t-lg`}>
         <NodeIcon type={nodeType} size={13} />
         <span>{label}</span>
       </div>
