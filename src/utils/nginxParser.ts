@@ -65,12 +65,11 @@ export function configToGraph(config: string): { nodes: Node<NodeData>[]; edges:
   }
 
   // 检测 80→443 重定向 server 块
-  const redirectMap = new Map<string, string>(); // server_name → 匹配的 https server 的 id
+  const redirectMap = new Map<string, string[]>(); // server_name → https server id 列表
   const redirectServers: typeof blocks = [];
 
   for (const b of blocks) {
     if (b.name !== 'server') continue;
-    const svName = b.directives['server_name'] || 'localhost';
     const hasReturn = !!b.directives['return'];
     const returnVal = b.directives['return'] || '';
     const returnMatch = returnVal.match(/^30[1278]\s+https?:\/\//);
@@ -87,8 +86,11 @@ export function configToGraph(config: string): { nodes: Node<NodeData>[]; edges:
     const serverName = b.directives['server_name'] || 'localhost';
     const listenVals = (b.directives['listen'] || '').split('\n').filter(Boolean);
     const ipv4Listen = listenVals.find((v: string) => !v.includes('[')) || '';
-    const ipv4Match = ipv4Listen.match(/^([\d.]+):(\d+)/) || ipv4Listen.match(/^(\d+)/);
-    const listenAddr = ipv4Match?.[1] && ipv4Match[1].includes('.') ? ipv4Match[1] : '';
+    // 匹配 IP:port、hostname:port、或纯端口
+    const ipv4Match = ipv4Listen.match(/^([\d.]+):(\d+)/)
+      || ipv4Listen.match(/^([^\s:]+):(\d+)/)
+      || ipv4Listen.match(/^(\d+)/);
+    const listenAddr = ipv4Match?.[1] && !/^\d+$/.test(ipv4Match[1]) ? ipv4Match[1] : '';
     const port = ipv4Match ? parseInt(ipv4Match[2] || ipv4Match[1], 10) : 80;
     const ssl = !!b.directives['ssl_certificate'] || ipv4Listen.includes('ssl');
     const ipv6Listen = listenVals.find((v: string) => v.includes('[')) || '';
@@ -125,7 +127,9 @@ export function configToGraph(config: string): { nodes: Node<NodeData>[]; edges:
       },
     };
     // 记录 server_name → serverNode，用于后续合并重定向
-    redirectMap.set(serverName, sId);
+    const existing = redirectMap.get(serverName) || [];
+    existing.push(sId);
+    redirectMap.set(serverName, existing);
     rawNodes.push(serverNode);
 
     for (const loc of b.blocks) {
@@ -203,12 +207,12 @@ export function configToGraph(config: string): { nodes: Node<NodeData>[]; edges:
 
       // 静态 location → 静态配置直接存入 location 节点
       if (mode === 'static') {
-        (rawNode.data as any).root = loc.directives['root'] || '';
-        (rawNode.data as any).index = loc.directives['index'] || '';
-        (rawNode.data as any).tryFiles = loc.directives['try_files'] || '';
-        (rawNode.data as any).expires = loc.directives['expires'] || '';
-        (rawNode.data as any).autoindex = false;
-        (rawNode.data as any).cacheControl = '';
+        (locNode.data as any).root = loc.directives['root'] || '';
+        (locNode.data as any).index = loc.directives['index'] || '';
+        (locNode.data as any).tryFiles = loc.directives['try_files'] || '';
+        (locNode.data as any).expires = loc.directives['expires'] || '';
+        (locNode.data as any).autoindex = false;
+        (locNode.data as any).cacheControl = '';
       }
 
       // proxy / fastcgi target
@@ -237,14 +241,19 @@ export function configToGraph(config: string): { nodes: Node<NodeData>[]; edges:
   // 合并 80→443 重定向 server 到对应的 HTTPS server
   for (const rb of redirectServers) {
     const svName = rb.directives['server_name'] || 'localhost';
-    const targetId = redirectMap.get(svName);
-    if (targetId) {
-      const targetNode = rawNodes.find((n) => n.id === targetId);
-      if (targetNode && (targetNode.data as any).ssl) {
-        (targetNode.data as any).redirectHttp = true;
-        continue;
+    const targetIds = redirectMap.get(svName);
+    let merged = false;
+    if (targetIds) {
+      for (const targetId of targetIds) {
+        const targetNode = rawNodes.find((n) => n.id === targetId);
+        if (targetNode && (targetNode.data as any).ssl) {
+          (targetNode.data as any).redirectHttp = true;
+          merged = true;
+          break;
+        }
       }
     }
+    if (merged) continue;
     // 找不到匹配的 HTTPS server，作为独立 server 保留
     const sId = generateId();
     rawNodes.push({

@@ -97,7 +97,6 @@ export function autoLayout(
       const ch = (children.get(pid) || []).filter((cid) => !SIDE_TYPES.has(nodeType.get(cid) || ''));
       if (ch.length === 0) continue;
       const pp = pos.get(pid)!;
-      const gap = layerGap.get(d) || V_GAP;
       const totalW = ch.length * NODE_W + (ch.length - 1) * H_GAP;
       let cx = pp.x + (NODE_W - totalW) / 2;
       for (const cid of ch) {
@@ -122,7 +121,6 @@ export function autoLayout(
       const sideCh = (children.get(pid) || []).filter((cid) => SIDE_TYPES.has(nodeType.get(cid) || ''));
       if (sideCh.length === 0) continue;
       const pp = pos.get(pid)!;
-      const parentDepth = depth.get(pid)!;
       // 侧挂节点排在父节点右边
       let sx = pp.x + NODE_W + SIDE_GAP;
       for (const cid of sideCh) {

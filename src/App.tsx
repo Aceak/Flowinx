@@ -12,7 +12,6 @@ const MIN_W = 340, MAX_W = 600;
 function App() {
   const theme = useStore((s) => s.theme);
   const panelCollapsed = useStore((s) => s.panelCollapsed);
-  const setPanelCollapsed = useStore((s) => s.setPanelCollapsed);
   const [panelWidth, setPanelWidth] = useState(() =>
     window.innerWidth < 768 ? window.innerWidth * 0.85 : 360
   );

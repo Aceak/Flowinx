@@ -123,7 +123,14 @@ export function generateConfig(
       // 兼容旧数据：两个都没填就回退到仅端口
       lines.push(INDENT(base + 1) + `listen ${s.port}${s.ssl ? ' ssl' : ''};`);
     }
-    if (s.listenIPv6) lines.push(INDENT(base + 1) + `listen [${s.listenIPv6}]:${s.ipv6Port}${s.ssl ? ' ssl' : ''};`);
+    if (s.listenIPv6) {
+      // 兼容旧数据：listenIPv6 可能已含 [addr]:port 格式，先拆解再重组
+      const raw = s.listenIPv6;
+      const bracketed = raw.match(/\[([^\]]+)\]:(\d+)/);
+      const addr = bracketed ? bracketed[1] : raw;
+      const v6port = bracketed ? parseInt(bracketed[2], 10) : (s.ipv6Port || 80);
+      lines.push(INDENT(base + 1) + `listen [${addr}]:${v6port}${s.ssl ? ' ssl' : ''};`);
+    }
     lines.push(INDENT(base + 1) + `server_name ${s.serverName}${s.aliases ? ' ' + s.aliases : ''};`);
 
     if (s.http2) lines.push(INDENT(base + 1) + 'http2 on;');
