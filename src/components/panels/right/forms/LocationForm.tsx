@@ -146,6 +146,11 @@ export function LocationForm({ data, onChange }: Props) {
                 onChange={(e) => onChange({ xff: e.target.checked })} />
               <span className="text-gray-700 dark:text-neutral-300">传递客户端真实 IP（X-Forwarded-For）</span>
             </label>
+            <label className="flex items-center gap-2 text-sm cursor-pointer">
+              <input type="checkbox" checked={data.chunkedTransfer !== false} className={CHECKBOX_CLASS}
+                onChange={(e) => onChange({ chunkedTransfer: e.target.checked })} />
+              <span className="text-gray-700 dark:text-neutral-300">分块传输</span>
+            </label>
           </>
         )}
 
@@ -169,9 +174,42 @@ export function LocationForm({ data, onChange }: Props) {
 
         {/* === 静态模式 === */}
         {mode === 'static' && (
-          <div className="bg-amber-50 dark:bg-amber-900/30 rounded-lg p-3 text-xs text-amber-700 dark:text-amber-300">
-            静态文件的目录、首页、缓存等配置在下方「静态资源」节点中设置。请将静态资源节点连接到本路径。
-          </div>
+          <>
+            <label className="flex flex-col gap-1">
+              <span className="text-gray-600 dark:text-neutral-400 text-sm font-medium">文件根目录</span>
+              <input type="text" value={data.root || ''} className={INPUT_CLASS}
+                placeholder="/var/www/html" onChange={(e) => onChange({ root: e.target.value })} />
+            </label>
+            <label className="flex flex-col gap-1">
+              <span className="text-gray-600 dark:text-neutral-400 text-sm font-medium">默认首页</span>
+              <input type="text" value={data.index || ''} className={INPUT_CLASS}
+                placeholder="index.html index.htm" onChange={(e) => onChange({ index: e.target.value })} />
+            </label>
+            <label className="flex flex-col gap-1">
+              <span className="text-gray-600 dark:text-neutral-400 text-sm font-medium">try_files</span>
+              <input type="text" value={data.tryFiles || ''} className={INPUT_CLASS}
+                placeholder="$uri $uri/ /index.html" onChange={(e) => onChange({ tryFiles: e.target.value })} />
+              <span className="text-xs text-gray-400 dark:text-neutral-500">按顺序尝试文件，常用于 SPA</span>
+            </label>
+            <label className="flex flex-col gap-1">
+              <span className="text-gray-600 dark:text-neutral-400 text-sm font-medium">浏览器缓存时间 (expires)</span>
+              <input type="text" value={data.expires || ''} className={INPUT_CLASS}
+                placeholder="30d" onChange={(e) => onChange({ expires: e.target.value })} />
+              <span className="text-xs text-gray-400 dark:text-neutral-500">例如 7d、30d、1h，留空不缓存</span>
+            </label>
+            <label className="flex flex-col gap-1">
+              <span className="text-gray-600 dark:text-neutral-400 text-sm font-medium">Cache-Control（浏览器缓存策略）</span>
+              <input type="text" value={data.cacheControl || ''} className={INPUT_CLASS}
+                placeholder="public, max-age=31536000, immutable" onChange={(e) => onChange({ cacheControl: e.target.value })} />
+              <span className="text-xs text-gray-400 dark:text-neutral-500">不写则使用默认策略</span>
+            </label>
+            <label className="flex items-center gap-2 text-sm cursor-pointer">
+              <input type="checkbox" checked={data.autoindex || false} className={CHECKBOX_CLASS}
+                onChange={(e) => onChange({ autoindex: e.target.checked })} />
+              <span className="text-gray-600 dark:text-neutral-400">开启目录浏览</span>
+              <span className="text-xs text-gray-400 dark:text-neutral-500">让用户可以浏览文件列表</span>
+            </label>
+          </>
         )}
 
         {/* === 禁止模式 === */}
@@ -252,12 +290,24 @@ export function LocationForm({ data, onChange }: Props) {
           {showAdvanced ? '收起' : '展开'} 高级
         </button>
         {showAdvanced && (
-          <label className="flex flex-col gap-1 pt-2">
-            <span className="text-gray-500 dark:text-neutral-400 text-xs">额外 nginx 配置（可选）</span>
-            <textarea value={data.extra} rows={3} className={INPUT_CLASS_COMPACT + ' font-mono'}
-              placeholder="proxy_read_timeout 60s;"
-              onChange={(e) => onChange({ extra: e.target.value })} />
-          </label>
+          <div className="flex flex-col gap-3 pt-2">
+            <label className="flex flex-col gap-1">
+              <span className="text-gray-500 dark:text-neutral-400 text-xs">访问日志 (access_log)</span>
+              <input type="text" value={data.accessLog || ''} className={INPUT_CLASS}
+                placeholder="留空继承上级设置" onChange={(e) => onChange({ accessLog: e.target.value })} />
+            </label>
+            <label className="flex flex-col gap-1">
+              <span className="text-gray-500 dark:text-neutral-400 text-xs">错误日志 (error_log)</span>
+              <input type="text" value={data.errorLog || ''} className={INPUT_CLASS}
+                placeholder="留空继承上级设置" onChange={(e) => onChange({ errorLog: e.target.value })} />
+            </label>
+            <label className="flex flex-col gap-1">
+              <span className="text-gray-500 dark:text-neutral-400 text-xs">额外 nginx 配置（可选）</span>
+              <textarea value={data.extra} rows={3} className={INPUT_CLASS_COMPACT + ' font-mono'}
+                placeholder="proxy_read_timeout 60s;"
+                onChange={(e) => onChange({ extra: e.target.value })} />
+            </label>
+          </div>
         )}
     </div>
   );

@@ -119,8 +119,6 @@ function App() {
           onTouchStart={panelCollapsed ? undefined : onTouchStart}
           onMouseMove={onPanelMouseMove}
           onMouseLeave={onPanelMouseLeave}
-          onDoubleClick={() => setPanelCollapsed(!panelCollapsed)}
-          title={panelCollapsed ? '双击展开面板' : '双击折叠面板 · 拖拽调整宽度'}
         >
           {!panelCollapsed && <RightPanel />}
         </div>

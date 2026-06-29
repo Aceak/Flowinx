@@ -6,7 +6,6 @@ import { ServerBlockForm } from './forms/ServerBlockForm';
 import { LocationForm } from './forms/LocationForm';
 import { UpstreamForm } from './forms/UpstreamForm';
 import { BackendServerForm } from './forms/BackendServerForm';
-import { StaticForm } from './forms/StaticForm';
 import { CacheForm } from './forms/CacheForm';
 import { AuthForm } from './forms/AuthForm';
 import { RateLimitForm } from './forms/RateLimitForm';
@@ -19,7 +18,6 @@ function renderForm(type: NodeType, data: NodeData, onChange: (d: Partial<NodeDa
     case 'location': return <LocationForm data={data as never} onChange={onChange as never} />;
     case 'upstream': return <UpstreamForm data={data as never} onChange={onChange as never} />;
     case 'backend':  return <BackendServerForm data={data as never} onChange={onChange as never} />;
-    case 'static':   return <StaticForm data={data as never} onChange={onChange as never} />;
     case 'cache':      return <CacheForm data={data as never} onChange={onChange as never} />;
     case 'auth':       return <AuthForm data={data as never} onChange={onChange as never} />;
     case 'rate_limit': return <RateLimitForm data={data as never} onChange={onChange as never} />;
@@ -53,7 +51,7 @@ export function ConfigPanel() {
   const label = NODE_LABELS[nodeType] || nodeType;
 
   return (
-    <div className="flex-1 flex flex-col">
+    <div className="flex-1 flex flex-col min-h-0">
       <div className="flex items-center justify-between p-2 border-b border-gray-200 dark:border-neutral-700 bg-gray-50 dark:bg-neutral-800 shrink-0 min-h-[40px] text-gray-700 dark:text-neutral-300">
         <div className="flex items-center gap-1.5">
           <NodeIcon type={nodeType} size={14} />

@@ -64,32 +64,51 @@ export function configToGraph(config: string): { nodes: Node<NodeData>[]; edges:
     }
   }
 
-  // servers
+  // 检测 80→443 重定向 server 块
+  const redirectMap = new Map<string, string>(); // server_name → 匹配的 https server 的 id
+  const redirectServers: typeof blocks = [];
+
   for (const b of blocks) {
     if (b.name !== 'server') continue;
+    const svName = b.directives['server_name'] || 'localhost';
+    const hasReturn = !!b.directives['return'];
+    const returnVal = b.directives['return'] || '';
+    const returnMatch = returnVal.match(/^30[1278]\s+https?:\/\//);
+    const listenLine = b.directives['listen'] || '';
+    const isRedirectServer = hasReturn && returnMatch && !b.directives['ssl_certificate'] && !listenLine.includes('ssl') && (b.blocks || []).every((lb) => lb.name !== 'location');
+
+    if (isRedirectServer) {
+      redirectServers.push(b);
+      continue; // 不创建独立节点，后续合并到 HTTPS server
+    }
+
+    // 非重定向 server 正常处理
     const sId = generateId();
     const serverName = b.directives['server_name'] || 'localhost';
     const listenVals = (b.directives['listen'] || '').split('\n').filter(Boolean);
-    const firstListen = listenVals[0] || '80';
-    const p = parseInt(firstListen.replace(/[^\d]/g, ''), 10);
-const port = isNaN(p) ? 80 : p;
-    const ssl = !!b.directives['ssl_certificate'] || firstListen.includes('ssl');
+    const ipv4Listen = listenVals.find((v: string) => !v.includes('[')) || '';
+    const ipv4Match = ipv4Listen.match(/^([\d.]+):(\d+)/) || ipv4Listen.match(/^(\d+)/);
+    const listenAddr = ipv4Match?.[1] && ipv4Match[1].includes('.') ? ipv4Match[1] : '';
+    const port = ipv4Match ? parseInt(ipv4Match[2] || ipv4Match[1], 10) : 80;
+    const ssl = !!b.directives['ssl_certificate'] || ipv4Listen.includes('ssl');
     const ipv6Listen = listenVals.find((v: string) => v.includes('[')) || '';
-    // 未映射到字段的指令存入 extra
+    const ipv6Match = ipv6Listen.match(/\[([^\]]+)\]:(\d+)/);
+    const ipv6Addr = ipv6Match?.[1] || '';
+    const ipv6Port = ipv6Match ? parseInt(ipv6Match[2], 10) : 80;
     const mapped = new Set(['listen','server_name','ssl_certificate','ssl_certificate_key','root','index',
       'http2','ssl_protocols','ssl_stapling','ssl_stapling_verify','ssl_trusted_certificate',
-      'add_header','client_max_body_size','access_log','error_log']);
+      'add_header','client_max_body_size','access_log','error_log','chunked_transfer_encoding']);
     const extraLines: string[] = [];
     for (const [k, v] of Object.entries(b.directives)) {
       if (mapped.has(k)) continue;
       if (v) extraLines.push(`${k} ${v};`);
     }
-    rawNodes.push({
+    const serverNode: any = {
       id: sId, type: 'server', position: { x: 0, y: 0 },
       data: {
-        label: NODE_LABELS['server'], serverName, listenAddr: '', port,
+        label: NODE_LABELS['server'], serverName, listenAddr, port,
         ssl, sslCert: b.directives['ssl_certificate'] || '', sslKey: b.directives['ssl_certificate_key'] || '',
-        aliases: '', hasStatic: true, root: b.directives['root'] || '', index: b.directives['index'] || '',
+        aliases: '', root: b.directives['root'] || '', index: b.directives['index'] || '',
         http2: b.directives['http2'] === 'on',
         sslProtocols: b.directives['ssl_protocols'] || 'TLSv1.2 TLSv1.3',
         sslStapling: b.directives['ssl_stapling'] === 'on',
@@ -99,12 +118,16 @@ const port = isNaN(p) ? 80 : p;
         clientMaxBodySize: b.directives['client_max_body_size'] || '',
         accessLog: b.directives['access_log'] || '',
         errorLog: b.directives['error_log'] || '',
-        listenIPv6: ipv6Listen,
-        extra: extraLines.join('\n'),
-      } as NodeData,
-    });
+        listenIPv6: ipv6Addr, ipv6Port,
+        chunkedTransfer: b.directives['chunked_transfer_encoding'] !== 'off',
+        redirectHttp: false,
+        gzip: false, gzipTypes: '', gzipMinLength: '',
+      },
+    };
+    // 记录 server_name → serverNode，用于后续合并重定向
+    redirectMap.set(serverName, sId);
+    rawNodes.push(serverNode);
 
-    // locations
     for (const loc of b.blocks) {
       if (loc.name !== 'location') continue;
       const lId = generateId();
@@ -122,7 +145,7 @@ const port = isNaN(p) ? 80 : p;
       const locArgs = loc.args;
       const modifierMatch = locArgs.match(/^(=|~|\^~|~\*|!~|!~\*)\s+/);
       const locPath = modifierMatch ? locArgs : locArgs;
-      rawNodes.push({
+      const locNode = {
         id: lId, type: 'location', position: { x: 0, y: 0 },
         data: {
           label: NODE_LABELS['location'], path: locPath, mode,
@@ -134,9 +157,11 @@ const port = isNaN(p) ? 80 : p;
           redirectPermanent: isRedirect ? [301, 308].includes(returnCode) || returnParts[0].startsWith('http') : true,
           allow: loc.directives['allow'] || '', deny: loc.directives['deny'] || '', includes: loc.directives['include'] || '',
           fastcgiIndex: loc.directives['fastcgi_index'] || '',
-          fastcgiParams: loc.directives['fastcgi_param'] || '', extra: '',
+          fastcgiParams: loc.directives['fastcgi_param'] || '',
+          chunkedTransfer: loc.directives['chunked_transfer_encoding'] !== 'off', extra: '',
         } as NodeData,
-      });
+      };
+      rawNodes.push(locNode);
       edges.push({ id: generateEdgeId(), source: sId, target: lId, type: 'bezier', sourceHandle: 'bottom-source', targetHandle: 'top-target', data: { label: '', order: 0 } });
 
       // auth 指令 → 创建认证节点
@@ -176,19 +201,14 @@ const port = isNaN(p) ? 80 : p;
         edges.push({ id: generateEdgeId(), source: lId, target: cacheId, type: 'bezier', sourceHandle: 'bottom-source', targetHandle: 'top-target', data: { label: '', order: 0 } });
       }
 
-      // 静态 location → 创建关联的 static 子节点
+      // 静态 location → 静态配置直接存入 location 节点
       if (mode === 'static') {
-        const stId = generateId();
-        rawNodes.push({
-          id: stId, type: 'static', position: { x: 0, y: 0 },
-          data: {
-            label: NODE_LABELS['static'],
-            root: loc.directives['root'] || '', index: loc.directives['index'] || '',
-            tryFiles: loc.directives['try_files'] || '', expires: loc.directives['expires'] || '',
-            autoindex: false,
-          } as NodeData,
-        });
-        edges.push({ id: generateEdgeId(), source: lId, target: stId, type: 'bezier', sourceHandle: 'bottom-source', targetHandle: 'top-target', data: { label: '', order: 0 } });
+        (rawNode.data as any).root = loc.directives['root'] || '';
+        (rawNode.data as any).index = loc.directives['index'] || '';
+        (rawNode.data as any).tryFiles = loc.directives['try_files'] || '';
+        (rawNode.data as any).expires = loc.directives['expires'] || '';
+        (rawNode.data as any).autoindex = false;
+        (rawNode.data as any).cacheControl = '';
       }
 
       // proxy / fastcgi target
@@ -212,6 +232,32 @@ const port = isNaN(p) ? 80 : p;
         }
       }
     }
+  }
+
+  // 合并 80→443 重定向 server 到对应的 HTTPS server
+  for (const rb of redirectServers) {
+    const svName = rb.directives['server_name'] || 'localhost';
+    const targetId = redirectMap.get(svName);
+    if (targetId) {
+      const targetNode = rawNodes.find((n) => n.id === targetId);
+      if (targetNode && (targetNode.data as any).ssl) {
+        (targetNode.data as any).redirectHttp = true;
+        continue;
+      }
+    }
+    // 找不到匹配的 HTTPS server，作为独立 server 保留
+    const sId = generateId();
+    rawNodes.push({
+      id: sId, type: 'server', position: { x: 0, y: 0 },
+      data: {
+        label: NODE_LABELS['server'], serverName: svName, listenAddr: '', port: 80,
+        ssl: false, sslCert: '', sslKey: '', aliases: '', root: '', index: '',
+        http2: false, sslProtocols: 'TLSv1.2 TLSv1.3', sslStapling: false, sslStaplingVerify: false,
+        sslTrustedCert: '', addHeaders: '', clientMaxBodySize: '', accessLog: '', errorLog: '',
+        listenIPv6: '', ipv6Port: 80, chunkedTransfer: true, redirectHttp: false, gzip: false,
+        gzipTypes: '', gzipMinLength: '', extra: '',
+      },
+    });
   }
 
   // 自动布局

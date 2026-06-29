@@ -1,12 +1,11 @@
 import type { NodeType } from '../../types/nodes';
-import { Globe, MapPin, Share2, Database, FolderOpen, HardDrive, Shield, Gauge, GitFork } from 'lucide-react';
+import { Globe, MapPin, Share2, Database, HardDrive, Shield, Gauge, GitFork } from 'lucide-react';
 
 const iconMap: Record<NodeType, React.ComponentType<{ size?: number }>> = {
   'server':     Globe,
   'location':   MapPin,
   'upstream':   Share2,
   'backend':    Database,
-  'static':     FolderOpen,
   'cache':      HardDrive,
   'auth':       Shield,
   'rate_limit': Gauge,

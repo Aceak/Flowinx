@@ -10,7 +10,7 @@ import { Grid3x3, Minus, MousePointer2, Hand, Eraser, ZoomIn, ZoomOut, Maximize,
 
 const nodeTypes = {
   server: CustomNode, location: CustomNode, upstream: CustomNode,
-  backend: CustomNode, static: CustomNode, cache: CustomNode,
+  backend: CustomNode, cache: CustomNode,
   auth: CustomNode, rate_limit: CustomNode, map: CustomNode,
 };
 
@@ -58,11 +58,11 @@ export function FlowCanvas() {
   const miniMapNodeColor = useCallback((n: { type?: string }) => {
     const colors: Record<string, string> = isDark ? {
       'server': '#60a5fa', 'location': '#2dd4bf', 'upstream': '#c084fc',
-      'backend': '#34d399', 'static': '#fbbf24', 'cache': '#fb923c',
+      'backend': '#34d399', 'cache': '#fb923c',
       'auth': '#f87171', 'rate_limit': '#fda4af', 'map': '#9ca3af',
     } : {
       'server': '#3b82f6', 'location': '#14b8a6', 'upstream': '#a855f7',
-      'backend': '#10b981', 'static': '#f59e0b', 'cache': '#f97316',
+      'backend': '#10b981', 'cache': '#f97316',
       'auth': '#ef4444', 'rate_limit': '#f43f5e', 'map': '#6b7280',
     };
     return colors[n.type || ''] || (isDark ? '#737373' : '#6b7280');

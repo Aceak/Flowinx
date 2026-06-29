@@ -5,7 +5,6 @@ export const NODE_LABELS: Record<NodeType, string> = {
   'location': '路径规则',
   'upstream': '后端组',
   'backend':  '后端服务器',
-  'static':   '静态资源',
   'cache':      '缓存规则',
   'auth':       '认证',
   'rate_limit': '限流',
@@ -31,7 +30,7 @@ export const NODE_CATEGORIES = [
   {
     key: 'content',
     label: '内容处理',
-    types: ['static', 'cache'] as NodeType[],
+    types: ['cache'] as NodeType[],
   },
   {
     key: 'security',

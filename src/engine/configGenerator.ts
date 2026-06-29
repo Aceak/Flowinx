@@ -1,5 +1,5 @@
 import type { Node, Edge } from '@xyflow/react';
-import type { NodeData, ServerData, LocationData, UpstreamData, BackendData, StaticData, CacheData } from '../types/nodes';
+import type { NodeData, ServerData, LocationData, UpstreamData, BackendData, CacheData } from '../types/nodes';
 import type { GraphEdgeData } from '../types/edges';
 import type { ConfigError } from '../types/store';
 import { getChildNodes } from './graphTraversal';
@@ -116,9 +116,14 @@ export function generateConfig(
     const children = getChildNodes(nodes, edges, server.id);
 
     // main server
-    const addr = s.listenAddr ? `${s.listenAddr}:` : '';
     lines.push(INDENT(base) + 'server {');
-    lines.push(INDENT(base + 1) + `listen ${addr}${s.port}${s.ssl ? ' ssl' : ''};`);
+    if (s.listenAddr) {
+      lines.push(INDENT(base + 1) + `listen ${s.listenAddr}:${s.port}${s.ssl ? ' ssl' : ''};`);
+    } else if (!s.listenIPv6) {
+      // 兼容旧数据：两个都没填就回退到仅端口
+      lines.push(INDENT(base + 1) + `listen ${s.port}${s.ssl ? ' ssl' : ''};`);
+    }
+    if (s.listenIPv6) lines.push(INDENT(base + 1) + `listen [${s.listenIPv6}]:${s.ipv6Port}${s.ssl ? ' ssl' : ''};`);
     lines.push(INDENT(base + 1) + `server_name ${s.serverName}${s.aliases ? ' ' + s.aliases : ''};`);
 
     if (s.http2) lines.push(INDENT(base + 1) + 'http2 on;');
@@ -130,15 +135,13 @@ export function generateConfig(
       if (s.sslStaplingVerify) lines.push(INDENT(base + 1) + 'ssl_stapling_verify on;');
       if (s.sslTrustedCert) lines.push(INDENT(base + 1) + `ssl_trusted_certificate ${s.sslTrustedCert};`);
     }
-    if (s.listenIPv6) lines.push(INDENT(base + 1) + `listen ${s.listenIPv6};`);
+    if (s.chunkedTransfer === false) lines.push(INDENT(base + 1) + 'chunked_transfer_encoding off;');
     for (const h of (s.addHeaders || '').split('\n').filter(Boolean)) lines.push(INDENT(base + 1) + `add_header ${h};`);
     if (s.clientMaxBodySize) lines.push(INDENT(base + 1) + `client_max_body_size ${s.clientMaxBodySize};`);
     if (s.accessLog) lines.push(INDENT(base + 1) + `access_log ${s.accessLog};`);
     if (s.errorLog) lines.push(INDENT(base + 1) + `error_log ${s.errorLog};`);
-    if (s.hasStatic !== false) {
-      if (s.root) lines.push(INDENT(base + 1) + `root ${s.root};`);
-      if (s.index) lines.push(INDENT(base + 1) + `index ${s.index};`);
-    }
+    if (s.root) lines.push(INDENT(base + 1) + `root ${s.root};`);
+    if (s.index) lines.push(INDENT(base + 1) + `index ${s.index};`);
     if (s.gzip) {
       lines.push(INDENT(base + 1) + 'gzip on;');
       if (s.gzipTypes) lines.push(INDENT(base + 1) + `gzip_types ${s.gzipTypes};`);
@@ -155,7 +158,6 @@ export function generateConfig(
       const mode = l.mode || 'static';
 
       lines.push('');
-      const stChild = mode === 'static' ? getChildNodes(nodes, edges, loc.id).find((n) => n.type === 'static') as Node<StaticData> | undefined : undefined;
       const locPath = l.path || '/';
       lines.push(INDENT(base + 1) + `location ${locPath} {`);
 
@@ -190,16 +192,16 @@ export function generateConfig(
             lines.push(INDENT(base + 2) + 'proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;');
             lines.push(INDENT(base + 2) + 'proxy_set_header X-Forwarded-Proto $scheme;');
           }
+          if (l.chunkedTransfer === false) lines.push(INDENT(base + 2) + 'chunked_transfer_encoding off;');
         }
       } else {
-        // 静态模式：从关联的 static 子节点读取配置
-        const st = stChild?.data;
-        if (st?.root) lines.push(INDENT(base + 2) + `root ${st.root};`);
-        if (st?.index) lines.push(INDENT(base + 2) + `index ${st.index};`);
-        if (st?.tryFiles) lines.push(INDENT(base + 2) + `try_files ${st.tryFiles};`);
-        if (st?.expires) lines.push(INDENT(base + 2) + `expires ${st.expires};`);
-        if (st?.cacheControl) lines.push(INDENT(base + 2) + `add_header Cache-Control "${st.cacheControl}";`);
-        if (st?.autoindex) lines.push(INDENT(base + 2) + 'autoindex on;');
+        // 静态模式：直接从 location 节点读取配置
+        if (l.root) lines.push(INDENT(base + 2) + `root ${l.root};`);
+        if (l.index) lines.push(INDENT(base + 2) + `index ${l.index};`);
+        if (l.tryFiles) lines.push(INDENT(base + 2) + `try_files ${l.tryFiles};`);
+        if (l.expires) lines.push(INDENT(base + 2) + `expires ${l.expires};`);
+        if (l.cacheControl) lines.push(INDENT(base + 2) + `add_header Cache-Control "${l.cacheControl}";`);
+        if (l.autoindex) lines.push(INDENT(base + 2) + 'autoindex on;');
       }
 
       // 缓存节点
@@ -235,8 +237,8 @@ export function generateConfig(
         lines.push(INDENT(base + 2) + `limit_req zone=${rl.zone} burst=${rl.burst}${rl.nodelay ? ' nodelay' : ''};`);
       }
 
-      if (l.tryFiles) lines.push(INDENT(base + 2) + `try_files ${l.tryFiles};`);
-      if (l.expires) lines.push(INDENT(base + 2) + `expires ${l.expires};`);
+      if (l.accessLog) lines.push(INDENT(base + 2) + `access_log ${l.accessLog};`);
+      if (l.errorLog) lines.push(INDENT(base + 2) + `error_log ${l.errorLog};`);
       for (const inc of (l.includes || '').split('\n').filter(Boolean)) lines.push(INDENT(base + 2) + `include ${inc};`);
       for (const ip of (l.allow || '').split('\n').filter(Boolean)) lines.push(INDENT(base + 2) + `allow ${ip.trim()};`);
       for (const ip of (l.deny || '').split('\n').filter(Boolean)) lines.push(INDENT(base + 2) + `deny ${ip.trim()};`);

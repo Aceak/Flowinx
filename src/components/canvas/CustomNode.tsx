@@ -1,7 +1,7 @@
 import { memo, useState } from 'react';
 import { Handle, Position } from '@xyflow/react';
 import { Lock, CircleCheck, Ban, ArrowRightLeft, Folder, ShieldBan, CornerDownRight } from 'lucide-react';
-import type { NodeData, NodeType, ServerData, LocationData, UpstreamData, BackendData, StaticData, CacheData, AuthData, RateLimitData, MapData } from '../../types/nodes';
+import type { NodeData, NodeType, ServerData, LocationData, UpstreamData, BackendData, CacheData, AuthData, RateLimitData, MapData } from '../../types/nodes';
 import { NodeIcon } from './NodeIcon';
 import { NODE_COLORS } from '../../constants/colors';
 import { NODE_LABELS } from '../../constants/labels';
@@ -44,6 +44,9 @@ export const CustomNode = memo(function CustomNode({ id, type, data, selected }:
             <p className="text-xs text-gray-500 dark:text-neutral-400 truncate flex items-center gap-1">
               {(data as ServerData).ssl ? 'https' : 'http'}://{(data as ServerData).listenAddr || '0.0.0.0'}:{(data as ServerData).port}
               {(data as ServerData).ssl && <Lock size={10} className="text-gray-400 dark:text-neutral-500 shrink-0" />}
+              {(data as ServerData).redirectHttp && (data as ServerData).ssl && (
+                <span className="text-[10px] text-green-600 dark:text-green-400 bg-green-50 dark:bg-green-950/50 px-1 rounded shrink-0">80→443</span>
+              )}
             </p>
             {((data as ServerData).root || (data as ServerData).index || (data as ServerData).gzip || (data as ServerData).http2) && (
               <p className="text-xs text-gray-400 dark:text-neutral-500 truncate flex items-center gap-1 flex-wrap">
@@ -104,21 +107,6 @@ export const CustomNode = memo(function CustomNode({ id, type, data, selected }:
                 (data as BackendData).backup ? '备用' : '',
               ].filter(Boolean).join(' · ') || ''}
             </p>
-          </>
-        ) : nodeType === 'static' ? (
-          <>
-            {(data as StaticData).root && (
-              <p className="text-xs text-gray-500 dark:text-neutral-400 truncate">root {(data as StaticData).root}</p>
-            )}
-            {(data as StaticData).index && (
-              <p className="text-xs text-gray-500 dark:text-neutral-400 truncate">index {(data as StaticData).index}</p>
-            )}
-            {(data as StaticData).tryFiles && (
-              <p className="text-xs text-gray-500 dark:text-neutral-400 truncate">try {(data as StaticData).tryFiles}</p>
-            )}
-            {(data as StaticData).expires && (
-              <p className="text-xs text-gray-400 dark:text-neutral-500 truncate">缓存 {(data as StaticData).expires}</p>
-            )}
           </>
         ) : nodeType === 'cache' ? (
           <>

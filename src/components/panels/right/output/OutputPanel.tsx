@@ -35,14 +35,14 @@ export function OutputPanel() {
 
   const allErrors = [...configErrors.map((e) => e.message), ...syntaxErrors];
 
-  // 双向同步：配置无错误且用户编辑过 → 解析回画布
+  // 双向同步：用户编辑无语法错误 → 解析回画布（忽略图层面错误）
   useEffect(() => {
-    if (!editedConfig || allErrors.length > 0) { setSyncing(false); return; }
+    if (!editedConfig || syntaxErrors.length > 0) { setSyncing(false); return; }
     if (editedConfig === lastSynced.current) { setSyncing(false); return; }
     setSyncing(true);
     const timer = setTimeout(() => {
       try {
-        if (allErrors.length > 0) { setSyncing(false); return; }
+        if (syntaxErrors.length > 0) { setSyncing(false); return; }
         const { nodes, edges } = configToGraph(editedConfig);
         lastSynced.current = editedConfig;
         useStore.getState().loadGraph(nodes, edges);
@@ -54,7 +54,7 @@ export function OutputPanel() {
       setSyncing(false);
     }, 800);
     return () => clearTimeout(timer);
-  }, [editedConfig, allErrors.length]);
+  }, [editedConfig, syntaxErrors.length]);
 
   const handleCopy = useCallback(async () => {
     if (!displayConfig) return;
@@ -62,7 +62,7 @@ export function OutputPanel() {
   }, [displayConfig]);
 
   return (
-    <div className="flex-1 flex flex-col">
+    <div className="flex-1 flex flex-col min-h-0">
       <div className="flex items-center justify-between p-2 border-b border-gray-200 dark:border-neutral-700 bg-gray-50 dark:bg-neutral-800 shrink-0 min-h-[40px] text-gray-700 dark:text-neutral-300">
         <div className="flex items-center gap-1.5">
           <FileText size={14} />

@@ -5,7 +5,6 @@ export const NODE_TYPES = [
   'location',
   'upstream',
   'backend',
-  'static',
   'cache',
   'auth',
   'rate_limit',
@@ -24,7 +23,6 @@ export interface ServerData {
   sslKey: string;
   serverName: string;
   aliases: string;
-  hasStatic: boolean;
   root: string;
   index: string;
   http2: boolean;
@@ -37,11 +35,14 @@ export interface ServerData {
   accessLog: string;
   errorLog: string;
   listenIPv6: string;
+  ipv6Port: number;
   gzip: boolean;
   gzipTypes: string;
   gzipMinLength: string;
   /** 自动将 80 端口重定向到 443 */
   redirectHttp: boolean;
+  /** 分块传输编码 */
+  chunkedTransfer: boolean;
   extra: string;
 }
 
@@ -62,6 +63,22 @@ export interface LocationData {
   includes: string;
   fastcgiIndex: string;
   fastcgiParams: string;
+  /** 静态模式：文件根目录 */
+  root: string;
+  /** 静态模式：默认首页 */
+  index: string;
+  /** 静态模式：try_files */
+  tryFiles: string;
+  /** 静态模式：浏览器缓存时间 */
+  expires: string;
+  /** 静态模式：目录浏览 */
+  autoindex: boolean;
+  /** 静态模式：Cache-Control */
+  cacheControl: string;
+  /** 分块传输编码（反代模式） */
+  chunkedTransfer: boolean;
+  accessLog: string;
+  errorLog: string;
   extra: string;
 }
 
@@ -81,17 +98,6 @@ export interface BackendData {
   maxFails: number;
   failTimeout: number;
   backup: boolean;
-}
-
-export interface StaticData {
-  [key: string]: unknown;
-  label: string;
-  root: string;
-  index: string;
-  tryFiles: string;
-  expires: string;
-  autoindex: boolean;
-  cacheControl: string;
 }
 
 export interface AuthData {
@@ -157,4 +163,4 @@ export interface CacheData {
   useStale: boolean;
 }
 
-export type NodeData = ServerData | LocationData | UpstreamData | BackendData | StaticData | CacheData | AuthData | RateLimitData | MapData;
+export type NodeData = ServerData | LocationData | UpstreamData | BackendData | CacheData | AuthData | RateLimitData | MapData;

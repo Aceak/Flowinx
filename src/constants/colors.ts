@@ -9,8 +9,6 @@ export const NODE_COLORS: Record<NodeType, { bg: string; border: string; badge: 
   'upstream':   { bg: 'bg-purple-50 dark:bg-purple-900/30',     border: 'border-purple-400 dark:border-purple-600',     badge: 'bg-purple-500 dark:bg-purple-600' },
   // 后端服务器 → 绿色，服务/健康
   'backend':    { bg: 'bg-emerald-50 dark:bg-emerald-900/30',   border: 'border-emerald-400 dark:border-emerald-600',   badge: 'bg-emerald-500 dark:bg-emerald-600' },
-  // 静态资源 → 琥珀色，文件/内容
-  'static':     { bg: 'bg-amber-50 dark:bg-amber-900/30',       border: 'border-amber-400 dark:border-amber-600',       badge: 'bg-amber-500 dark:bg-amber-600' },
   // 缓存 → 橙色，速度/热度
   'cache':      { bg: 'bg-orange-50 dark:bg-orange-900/30',     border: 'border-orange-400 dark:border-orange-600',     badge: 'bg-orange-500 dark:bg-orange-600' },
   // 认证 → 红色，安全/锁

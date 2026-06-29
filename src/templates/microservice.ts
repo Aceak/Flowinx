@@ -1,0 +1,27 @@
+export const microservice = {
+  name: '微服务路由',
+  description: '单域名多后端 + 认证保护管理面板',
+  nodes: [
+    { id: 's1', type: 'server', position: { x: 310, y: 0 }, data: { label: '微服务平台', listenAddr: '0.0.0.0', port: 443, ssl: true, sslCert: '/etc/nginx/ssl/fullchain.pem', sslKey: '/etc/nginx/ssl/privkey.pem', serverName: 'platform.example.com', root: '', index: '', http2: true, sslProtocols: 'TLSv1.2 TLSv1.3', redirectHttp: true, gzip: true, chunkedTransfer: true } },
+    { id: 'l1', type: 'location', position: { x: 50, y: 160 }, data: { label: '用户服务', path: '/api/users/', mode: 'proxy', xff: true, chunkedTransfer: true } },
+    { id: 'l2', type: 'location', position: { x: 380, y: 160 }, data: { label: '订单服务', path: '/api/orders/', mode: 'proxy', xff: true, chunkedTransfer: true } },
+    { id: 'l3', type: 'location', position: { x: 640, y: 160 }, data: { label: '管理面板', path: '/admin/', mode: 'proxy', xff: true, chunkedTransfer: true, accessLog: '/var/log/nginx/admin.log' } },
+    { id: 'u1', type: 'upstream', position: { x: -10, y: 320 }, data: { label: '用户服务组', name: 'user_svc', strategy: 'round-robin', keepalive: 32 } },
+    { id: 'b1', type: 'backend', position: { x: -80, y: 480 }, data: { label: '用户服务-1', address: '10.0.2.10:3001', weight: 1, maxFails: 3, failTimeout: 30 } },
+    { id: 'b2', type: 'backend', position: { x: 140, y: 480 }, data: { label: '用户服务-2', address: '10.0.2.11:3001', weight: 1, maxFails: 3, failTimeout: 30 } },
+    { id: 'b3', type: 'backend', position: { x: 380, y: 480 }, data: { label: '订单服务', address: '10.0.3.10:3002', weight: 1, maxFails: 3, failTimeout: 30 } },
+    { id: 'b4', type: 'backend', position: { x: 590, y: 480 }, data: { label: '管理后台', address: '127.0.0.1:9000', weight: 1, maxFails: 3, failTimeout: 30 } },
+    { id: 'a1', type: 'auth', position: { x: 810, y: 480 }, data: { label: '管理认证', authType: 'basic', realm: 'Admin Area', userFile: '/etc/nginx/.htpasswd_admin' } },
+  ],
+  edges: [
+    { id: 'e1', source: 's1', target: 'l1', type: 'bezier', sourceHandle: 'bottom-source', targetHandle: 'top-target', data: { label: '', order: 0 } },
+    { id: 'e2', source: 's1', target: 'l2', type: 'bezier', sourceHandle: 'bottom-source', targetHandle: 'top-target', data: { label: '', order: 1 } },
+    { id: 'e3', source: 's1', target: 'l3', type: 'bezier', sourceHandle: 'bottom-source', targetHandle: 'top-target', data: { label: '', order: 2 } },
+    { id: 'e4', source: 'l1', target: 'u1', type: 'bezier', sourceHandle: 'bottom-source', targetHandle: 'top-target', data: { label: '负载均衡', order: 0 } },
+    { id: 'e5', source: 'u1', target: 'b1', type: 'bezier', sourceHandle: 'bottom-source', targetHandle: 'top-target', data: { label: '', order: 0 } },
+    { id: 'e6', source: 'u1', target: 'b2', type: 'bezier', sourceHandle: 'bottom-source', targetHandle: 'top-target', data: { label: '', order: 1 } },
+    { id: 'e7', source: 'l2', target: 'b3', type: 'bezier', sourceHandle: 'bottom-source', targetHandle: 'top-target', data: { label: '', order: 0 } },
+    { id: 'e8', source: 'l3', target: 'b4', type: 'bezier', sourceHandle: 'bottom-source', targetHandle: 'top-target', data: { label: '', order: 0 } },
+    { id: 'e9', source: 'l3', target: 'a1', type: 'bezier', sourceHandle: 'right-source', targetHandle: 'left-target', data: { label: '', order: 1 } },
+  ],
+};
